@@ -7,7 +7,7 @@ The user-facing onboarding doc is `SUI_DEEPBOOK_COURSE_FOR_DUMMIES.md`. This fil
 ## What This Actually Is
 
 - A Claude Code plugin manifest (`.claude-plugin/plugin.json`).
-- An **MCP server** at `mcp/server/` (TypeScript, ESM, Node 18+, MCP SDK + zod) that exposes eight tools the LLM uses to drive lessons.
+- An **MCP server** at `mcp/server/` (TypeScript, ESM, Node 18+, MCP SDK + zod) that exposes nine tools the LLM uses to drive lessons.
 - A **course-conductor agent** (`agents/course-conductor.md`) that runs the per-spot loop.
 - A **course-engine skill** (`skills/course-engine/SKILL.md`) wired to the `/sui-deepbook-course:start` slash command.
 - One **learning path** so far: `paths/01-orderbook-viewer/` (3 phases, TypeScript work against deepbook-sandbox).
@@ -36,8 +36,10 @@ The plugin manifest spawns `node mcp/server/dist/index.js` over stdio, so `pnpm 
 
 | Path | Role |
 |---|---|
-| `mcp/server/src/index.ts` | MCP entry; registers 8 tools and connects `StdioServerTransport` when run as a script. |
-| `mcp/server/src/tools/*.ts` | One file per MCP tool (`start`, `selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`, `runPreflightProbe`). |
+| `mcp/server/src/index.ts` | MCP entry; registers 9 tools and connects `StdioServerTransport` when run as a script. |
+| `mcp/server/src/tools/*.ts` | One file per MCP tool (`start`, `selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`, `getNextPrompt`, `runPreflightProbe`). |
+| `mcp/server/src/pathsRoot.ts` | F-001 — `resolvePathsRoot` / `resolvePathContentRoot`. Routes path content through the plugin install dir (derived from `process.argv[1]`) when the user's projectRoot has no local `paths/` dir. |
+| `mcp/server/src/editorOpen.ts` | F-004 — builds a `tmux split-window` invocation when `$TMUX` and a recognized `$EDITOR` are set. nextSpot embeds it as `tmux_open_command` in the spot view. |
 | `mcp/server/src/preflight.ts` | Frozen `PROBE_ORDER` + probe registry. |
 | `mcp/server/src/probes/*.ts` | One file per probe. |
 | `mcp/server/src/state.ts` | State load/save with corruption archiving and atomic writes. |
@@ -63,7 +65,7 @@ The plugin manifest spawns `node mcp/server/dist/index.js` over stdio, so `pnpm 
 
 ## Architectural Invariants (do not break)
 
-1. **Output-style gate runs before any state load** in every gated tool (`selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`). The pattern is: probe `outputStyleOk` → return `output-style-disabled` early → only then `loadState`. Codebase calls this "L002 carry-forward". When adding new gated tools, replicate this ordering.
+1. **Output-style gate runs before any state load** in every gated tool (`selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`, `getNextPrompt`). The pattern is: probe `outputStyleOk` → return `output-style-disabled` early → only then `loadState`. Codebase calls this "L002 carry-forward". When adding new gated tools, replicate this ordering.
 2. **`paths/` registry validates `path.json` AND `phases.json` together.** A path that has a valid `path.json` but malformed `phases.json` is dropped from the registry and emitted as a warning. Don't relax this — cycle 4 onward depends on phases being load-bearing.
 3. **Rung gating is enforced server-side** as defense-in-depth even though the agent also enforces it. Rung 2 requires `hint_used: true`. Rung 3 requires `reference_shown: true`. Violations return a `rung-out-of-order` structured error.
 4. **Rung 3 (auto-write) goes through `requestHint` MCP only.** Never add a Bash side-channel for file mutation. For workspace-aware paths the server snapshots the original to `<workspace>/.course-snapshots/...`; for legacy paths (no workspace block) snapshots fall back to `<projectRoot>/.sui-deepbook-course/snapshots/...`. Either way, replace + auto-verify happen in one transaction.
@@ -74,7 +76,8 @@ The plugin manifest spawns `node mcp/server/dist/index.js` over stdio, so `pnpm 
 9. **`auto_completed` is permanent** once set by a successful rung 3. It is never cleared — not on retry, not on session restart, not on path reset short of deleting `state.json`.
 10. **Preflight is skipped in cycle 1.** `start` always returns `preflight: { skipped: true, reason: "cycle-1" }`. Probes only run via `runPreflightProbe` on subsequent cycles. Do not move probe execution into `start`.
 11. **Workspaces are course-owned and idempotent (F-005).** `prepareWorkspace` lives at `~/.sui-deepbook-course/workspaces/<slug>/`, fingerprints the path's `hosts/` tarball into `host_signature`, and reuses an existing workspace iff that signature matches. Mismatch → archive to `<workspace>.archive-<ts>/` and recreate. The lesson `pnpm build` runs **inside the workspace**, not in projectRoot. Tests inject a stub spawn via `WorkspaceOptions.spawn` (mirrors the verify-spawn seam) and override `WorkspaceOptions.basePath` for hermetic temp dirs.
-12. **State schema versioning (F-005).** `STATE_SCHEMA_VERSION` is 2. Bumping it follows the existing recovery flow — `loadState` returns `kind: 'schema-mismatch'`, `selectPath` short-circuits with the warning, and the learner re-runs `selectPath` to mint a fresh v(N) state. Never silently coerce a v(N-1) state into v(N).
+12. **State schema versioning.** `STATE_SCHEMA_VERSION` is 3 (cycle 4 = 1, F-005 = 2 for `workspace_path` + `selected_style_per_spot`, PR 2 = 3 for `prompt_cursor_per_spot`). Bumping it follows the existing recovery flow — `loadState` returns `kind: 'schema-mismatch'`, `selectPath` short-circuits with the warning, and the learner re-runs `selectPath` to mint a fresh v(N) state. Never silently coerce a v(N-1) state into v(N).
+13. **Path content lives at the plugin install root, not under projectRoot (F-001).** `pathsRoot.ts:resolvePathsRoot` / `resolvePathContentRoot` are the only correct ways to compute a paths-root path. They prefer `<projectRoot>/paths/` when it exists with at least one subdirectory (dev iteration in this repo), and fall back to `<pluginRoot>/paths/` derived via `fs.realpathSync(argv[1])` walking up to a directory whose `.claude-plugin/plugin.json` exists. When adding code that reads `paths/<slug>/...`, route through these helpers — never hard-code `path.join(projectRoot, 'paths', ...)`.
 
 ## Verification Modes
 

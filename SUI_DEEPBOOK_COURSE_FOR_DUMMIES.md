@@ -238,7 +238,11 @@ Workspaces are **idempotent**: re-running `selectPath` on the same slug reuses t
 
 To wipe a workspace and start over, delete `~/.sui-deepbook-course/workspaces/<slug>/` (or call the `resetWorkspace` MCP tool when it's exposed in PR 2).
 
-**Per-spot exercise styles**: each spot can offer two styles — `fill-in-blank` (the starter file with TODO regions you fill in) and `prompted-agentic` (a sequence of pre-written prompts you paste into Claude; PR 2 deliverable). The `selectStyle` MCP tool persists your choice into `state.selected_style_per_spot[spot_id]`. PR 1 only honors `fill-in-blank`; choosing `prompted-agentic` returns `style-not-yet-supported`.
+**Per-spot exercise styles**: each spot can offer two styles — `fill-in-blank` (the starter file with TODO regions you fill in) and `prompted-agentic` (a sequence of pre-written prompts you paste into your own Claude session). The `selectStyle` MCP tool persists your choice into `state.selected_style_per_spot[spot_id]`. For `prompted-agentic` spots, the new `getNextPrompt` MCP tool walks the prompt sequence — call it after each "ok next" from the learner; it returns the next markdown prompt and advances the per-spot cursor. The conductor renders the prompt and waits while you run it in your other Claude session. When the sequence is exhausted, you fall back to `verifySpot` to lock in the same `pnpm build` gate as Style A.
+
+**Plugin-relative path discovery (F-001)**: as of PR 2 you can run `/sui-deepbook-course:start` from any project root — the course finds its content under the plugin install dir (`~/.claude/plugins/cache/...`) automatically. If you have a local `paths/` directory in your project root, it takes precedence (useful for in-repo iteration when developing new path content).
+
+**Tmux pane affordance (F-004)**: when you're inside `tmux` AND `$EDITOR` is set to a recognized editor (`vim`/`nvim`/`code`/`emacs`/`hx`), `nextSpot` returns a `tmux_open_command` you can paste to open the editable file in a split pane jumped to the right line. Optional — the agent never runs it for you.
 
 ---
 
@@ -353,7 +357,7 @@ A `phases` array. Each phase has `id`, `title`, `explainer_md`, and a `spots` ar
 | `compile` | `command` | Spawn the command in `projectRoot`. Pass = exit 0. |
 | `simulate` | `endpoint`, `expected_status` | HTTP GET. Pass = response.status matches. |
 
-### `state.json` schema (version 2 — F-005 bumped from 1)
+### `state.json` schema (version 3 — PR 2 bumped from 2 to add `prompt_cursor_per_spot`)
 
 ```json
 {

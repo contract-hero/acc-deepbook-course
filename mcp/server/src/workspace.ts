@@ -24,6 +24,7 @@ import { spawn as defaultSpawn, type SpawnOptions } from 'node:child_process';
 import type { PathData } from './schemas/path.js';
 import { validateWorkspaceMeta, WORKSPACE_META_SCHEMA_VERSION } from './schemas/workspace.js';
 import type { WorkspaceMeta } from './schemas/workspace.js';
+import { resolvePathContentRoot } from './pathsRoot.js';
 
 export type { WorkspaceMeta };
 
@@ -104,7 +105,7 @@ export async function prepareWorkspace(
   }
 
   const workspacePath = getWorkspacePath(slug, opts);
-  const pathContentRoot = opts.pathContentRoot ?? path.join(projectRoot, 'paths', slug);
+  const pathContentRoot = opts.pathContentRoot ?? resolvePathContentRoot(projectRoot, slug);
   const hostDir = path.join(pathContentRoot, pathData.workspace.host);
 
   // 1. Compute the current host signature from the path's host directory.

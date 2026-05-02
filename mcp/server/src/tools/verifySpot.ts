@@ -7,6 +7,7 @@ import { probeOutputStyle } from '../outputStyle.js';
 import { validatePath } from '../schemas/path.js';
 import type { VerifySpawnFn } from '../verify.js';
 import type { VerificationSpec } from '../schemas/phases.js';
+import { resolvePathContentRoot } from '../pathsRoot.js';
 
 export interface VerifySpotResult {
   pass: boolean;
@@ -134,7 +135,7 @@ async function resolveVerificationCwd(
   let pathRel = '.';
   try {
     const raw = await fsPromises.readFile(
-      path.join(projectRoot, 'paths', slug, 'path.json'),
+      path.join(resolvePathContentRoot(projectRoot, slug), 'path.json'),
       'utf8',
     );
     const validation = validatePath(JSON.parse(raw));

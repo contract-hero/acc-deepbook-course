@@ -1,5 +1,7 @@
 # Hint — Implementing the Polling Tick
 
+The file you're editing is at `{{ target_file_absolute }}` (lines 116–145).
+
 The polling tick runs on a fixed interval and must tolerate individual gRPC failures without stopping the loop.
 
 Use `setInterval` to schedule the tick. Inside the tick callback, wrap each DeepBook SDK call with `withRetry(...)` to handle transient failures. Store the results in React state with `useState` and update them inside the callback.

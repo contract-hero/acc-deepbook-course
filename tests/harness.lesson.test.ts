@@ -96,8 +96,8 @@ afterEach(async () => {
 // A1: registerTools registers exactly six tools
 // ---------------------------------------------------------------------------
 
-describe('registerTools — eight tools after F-005 (A1)', () => {
-  it('T-179: registers exactly eight tools: start, runPreflightProbe, selectPath, setPersonalization, selectStyle, nextSpot, verifySpot, requestHint', () => {
+describe('registerTools — nine tools after PR 2 (A1)', () => {
+  it('T-179: registers exactly nine tools including getNextPrompt for the prompted-agentic style', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -111,8 +111,9 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
     registerTools(stubServer);
 
     const sorted = [...registered].sort();
-    // F-005 adds selectStyle (the 8th tool) for the per-spot exercise-style picker.
+    // PR 2 adds getNextPrompt (the 9th tool) — drives the prompted-agentic flow.
     const expected = [
+      'getNextPrompt',
       'nextSpot',
       'requestHint',
       'runPreflightProbe',
@@ -123,10 +124,10 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
       'verifySpot',
     ].sort();
     expect(sorted).toEqual(expected);
-    expect(registered.length).toBe(8);
+    expect(registered.length).toBe(9);
   });
 
-  it('T-180: exactly eight handler files exist under mcp/server/src/tools/', () => {
+  it('T-180: exactly nine handler files exist under mcp/server/src/tools/', () => {
     const toolsDir = path.join(REPO_ROOT, 'mcp', 'server', 'src', 'tools');
     const entries = fs.readdirSync(toolsDir, { withFileTypes: true });
     const tsFiles = entries
@@ -134,6 +135,7 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
       .map((e) => e.name)
       .sort();
     expect(tsFiles).toEqual([
+      'getNextPrompt.ts',
       'nextSpot.ts',
       'requestHint.ts',
       'runPreflightProbe.ts',

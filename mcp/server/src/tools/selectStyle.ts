@@ -1,16 +1,20 @@
 // selectStyle MCP tool — persist the learner's per-spot exercise-style choice.
 //
-// PR 1 only honors 'fill-in-blank'. 'prompted-agentic' is reserved in the
-// schema and surface but the tool returns 'style-not-yet-supported' until
-// PR 2 lights it up. The conductor agent should call selectStyle after
-// nextSpot when the spot exposes multiple styles; if a spot has no styles
-// block, selectStyle is a no-op.
+// PR 2 (this PR): both styles are functional. 'fill-in-blank' uses the starter
+// file under workspace.files; 'prompted-agentic' walks an ordered prompt
+// sequence under styles.prompted-agentic.prompts_dir. The conductor agent
+// should call selectStyle after nextSpot when the spot exposes multiple
+// styles; if a spot has no styles block, selectStyle is a no-op for backward
+// compat with legacy single-style paths.
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { loadState, saveState } from '../state.js';
 import type { State, SpotStyleKind } from '../schemas/state.js';
 import { loadPhases } from '../phaseEngine.js';
 import { probeOutputStyle } from '../outputStyle.js';
 import type { SpotData } from '../schemas/phases.js';
+import { resolvePathContentRoot } from '../pathsRoot.js';
 
 export interface SelectStyleResult {
   ok: boolean;
@@ -84,12 +88,25 @@ export async function runSelectStyle(args: {
   }
 
   if (style === 'prompted-agentic') {
-    return {
-      ok: false,
-      errors: [
-        `style-not-yet-supported: 'prompted-agentic' is reserved in the schema but not yet implemented (planned for PR 2).`,
-      ],
-    };
+    // PR 2: require the path to actually ship at least one prompt for the spot
+    // before honoring the choice. If prompts_dir is empty or absent, fall
+    // back with a clear error rather than silently selecting an empty flow.
+    const promptsRel = spot.styles['prompted-agentic']?.prompts_dir;
+    if (!promptsRel) {
+      return {
+        ok: false,
+        errors: [`Spot '${spotId}' declares 'prompted-agentic' without a prompts_dir`],
+      };
+    }
+    const promptsAbs = path.join(resolvePathContentRoot(projectRoot, slug), promptsRel);
+    if (!hasAnyPromptFile(promptsAbs)) {
+      return {
+        ok: false,
+        errors: [
+          `prompts-not-authored: spot '${spotId}' declares 'prompted-agentic' but no prompts are authored at ${promptsRel} yet.`,
+        ],
+      };
+    }
   }
 
   // Persist the choice.
@@ -114,6 +131,17 @@ function findSpot(
     }
   }
   return null;
+}
+
+function hasAnyPromptFile(promptsDir: string): boolean {
+  try {
+    const entries = fs.readdirSync(promptsDir, { withFileTypes: true });
+    return entries.some(
+      (e) => e.isFile() && e.name.toLowerCase().endsWith('.md') && !e.name.startsWith('.'),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // Alias export for symmetry with the other tools.

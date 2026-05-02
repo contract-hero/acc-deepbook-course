@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { validatePhases } from './schemas/phases.js';
 import type { PhasesData, PhaseData, SpotData } from './schemas/phases.js';
 import type { State } from './schemas/state.js';
+import { resolvePathContentRoot } from './pathsRoot.js';
 
 export type { PhasesData, PhaseData, SpotData };
 
@@ -23,7 +24,7 @@ export class LoadPhasesError extends Error {
  * Load and validate paths/<slug>/phases.json from projectRoot.
  */
 export async function loadPhases(projectRoot: string, slug: string): Promise<PhasesData> {
-  const phasesPath = path.join(projectRoot, 'paths', slug, 'phases.json');
+  const phasesPath = path.join(resolvePathContentRoot(projectRoot, slug), 'phases.json');
 
   let raw: string;
   try {

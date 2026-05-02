@@ -32,8 +32,12 @@ export interface State {
    * path declares a workspace block. Older state files (schema_version < 2)
    * omit this. Tools resolve verification cwd and target files against it. */
   workspace_path?: string;
-  /** Per-spot exercise style choice. PR 1 only honors 'fill-in-blank'. */
+  /** Per-spot exercise style choice. PR 1 only honors 'fill-in-blank';
+   * PR 2 lights up 'prompted-agentic'. */
   selected_style_per_spot?: Record<string, SpotStyleKind>;
+  /** PR 2 — per-spot prompt cursor for the prompted-agentic flow.
+   * Tracks the index of the next prompt the learner has not yet seen. */
+  prompt_cursor_per_spot?: Record<string, number>;
 }
 
 type ValidationResult<T> =
@@ -149,7 +153,31 @@ export function validateState(v: unknown): ValidationResult<State> {
     ladder: normalizedLadder,
     history: obj['history'] as HistoryEntry[],
   };
+  let prompt_cursor_per_spot: Record<string, number> | undefined;
+  if (obj['prompt_cursor_per_spot'] !== undefined) {
+    if (
+      typeof obj['prompt_cursor_per_spot'] !== 'object' ||
+      obj['prompt_cursor_per_spot'] === null ||
+      Array.isArray(obj['prompt_cursor_per_spot'])
+    ) {
+      return { ok: false, error: 'prompt_cursor_per_spot must be a non-null object when present' };
+    }
+    const raw = obj['prompt_cursor_per_spot'] as Record<string, unknown>;
+    const normalized: Record<string, number> = {};
+    for (const [spotId, val] of Object.entries(raw)) {
+      if (typeof val !== 'number' || !Number.isInteger(val) || val < 0) {
+        return {
+          ok: false,
+          error: `prompt_cursor_per_spot['${spotId}'] must be a non-negative integer`,
+        };
+      }
+      normalized[spotId] = val;
+    }
+    prompt_cursor_per_spot = normalized;
+  }
+
   if (workspace_path !== undefined) value.workspace_path = workspace_path;
   if (selected_style_per_spot !== undefined) value.selected_style_per_spot = selected_style_per_spot;
+  if (prompt_cursor_per_spot !== undefined) value.prompt_cursor_per_spot = prompt_cursor_per_spot;
   return { ok: true, value };
 }

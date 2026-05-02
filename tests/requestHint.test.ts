@@ -184,8 +184,8 @@ afterEach(() => {
 // A1: registerTools registers the seventh tool
 // ---------------------------------------------------------------------------
 
-describe('registerTools — eight tools after F-005 (A1)', () => {
-  it('T-001: registers exactly eight tools including requestHint and selectStyle', () => {
+describe('registerTools — nine tools after PR 2 (A1)', () => {
+  it('T-001: registers exactly nine tools including requestHint, selectStyle, and getNextPrompt', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -196,13 +196,14 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
       },
     } as any;
     registerTools(stubServer);
-    expect(registered.length).toBe(8);
+    expect(registered.length).toBe(9);
     expect(registered).toContain('requestHint');
     expect(registered).toContain('start');
     expect(registered).toContain('runPreflightProbe');
     expect(registered).toContain('selectPath');
     expect(registered).toContain('setPersonalization');
     expect(registered).toContain('selectStyle');
+    expect(registered).toContain('getNextPrompt');
     expect(registered).toContain('nextSpot');
     expect(registered).toContain('verifySpot');
   });
@@ -242,7 +243,7 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
     expect(matches.length).toBe(1);
   });
 
-  it('T-004: tools/ directory contains exactly eight .ts handler files (F-005 added selectStyle)', () => {
+  it('T-004: tools/ directory contains exactly nine .ts handler files (PR 2 added getNextPrompt)', () => {
     const toolsDir = path.join(REPO_ROOT, 'mcp', 'server', 'src', 'tools');
     const entries = fs.readdirSync(toolsDir, { withFileTypes: true });
     const tsFiles = entries
@@ -250,6 +251,7 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
       .map((e) => e.name)
       .sort();
     expect(tsFiles).toEqual([
+      'getNextPrompt.ts',
       'nextSpot.ts',
       'requestHint.ts',
       'runPreflightProbe.ts',
@@ -261,7 +263,7 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
     ]);
   });
 
-  it('T-106: registerTools registers no ninth tool (F-005 expanded the registered set to eight)', () => {
+  it('T-106: registerTools registers no tenth tool (PR 2 expanded the registered set to nine)', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -278,6 +280,7 @@ describe('registerTools — eight tools after F-005 (A1)', () => {
       'selectPath',
       'setPersonalization',
       'selectStyle',
+      'getNextPrompt',
       'nextSpot',
       'verifySpot',
       'requestHint',

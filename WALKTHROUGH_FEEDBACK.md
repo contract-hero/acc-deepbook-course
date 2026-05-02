@@ -6,7 +6,11 @@ Status legend: `OPEN` = captured, not started · `PLANNED` = approach decided ·
 
 ---
 
-## F-001 — Course content must be distributed with the plugin, not discovered in the user's cwd · OPEN
+## F-001 — Course content must be distributed with the plugin, not discovered in the user's cwd · DONE (PR 2)
+
+**Resolution**: New `mcp/server/src/pathsRoot.ts` exposes `resolvePathsRoot` / `resolvePathContentRoot`. Resolution prefers `<projectRoot>/paths/` when it exists with at least one subdir (dev iteration); otherwise falls back to `<pluginRoot>/paths/` derived from `fs.realpathSync(process.argv[1])` walking up to a directory whose `.claude-plugin/plugin.json` exists. All callers (start, selectPath, setPersonalization, verifySpot, requestHint, phaseEngine, workspace, selectStyle, getNextPrompt) route through these helpers — no more hard-coded `path.join(projectRoot, 'paths', ...)`. Captured as CLAUDE.md invariant 13.
+
+
 
 **Symptom**: Had to `cd` into the `sui-mcp-course` repo before `/sui-deepbook-course:start` would find the `01-orderbook-viewer` path. From any other directory, the course can't see the lessons.
 
@@ -39,7 +43,11 @@ const registry = await scanRegistry(pathsRoot);
 
 ---
 
-## F-002 — After `selectPath`, the agent should explain what the path is about before personalization · OPEN
+## F-002 — After `selectPath`, the agent should explain what the path is about before personalization · DONE (PR 2)
+
+**Resolution**: `selectPath` now best-effort loads `paths/<slug>/description.md` and returns its body as `result.description`. `skills/course-engine/SKILL.md` instructs the conductor to render that content verbatim before walking through `personalizationPrompts`. Missing description.md is fine — the field stays undefined.
+
+
 
 **Symptom**: Selecting a path immediately drops into personalization prompts (`poll_interval_ms`, `pool_subset`) without the learner having any sense of what they're about to build, why, or how long it will take.
 
@@ -67,7 +75,11 @@ Option 1 is cleaner and keeps the plugin-root knowledge inside the MCP server.
 
 ---
 
-## F-003 — Spot prompts must include the absolute path of the file to edit · OPEN
+## F-003 — Spot prompts must include the absolute path of the file to edit · DONE (F-005 + PR 2)
+
+**Resolution**: F-005 (PR 1) wired `target_file_absolute` into the spot view and exposed it as a `{{ target_file_absolute }}` substitution variable. PR 2 added explicit `{{ target_file_absolute }}` references to every spot's `prompt`, every rung hint, and every prompted-agentic prompt — so the absolute path is visible everywhere the learner sees instructions, not just buried in the spot view's metadata.
+
+
 
 **Symptom**: When `nextSpot` returns a spot, the prompt says things like *"Lines 39–58 of `src/App.tsx` are the target"* without telling the learner **where** `src/App.tsx` actually lives. Since edits happen inside the deepbook-sandbox checkout (not the user's `projectRoot`), `src/App.tsx` is ambiguous — the learner has to guess or hunt for the file.
 
@@ -96,7 +108,11 @@ Option 1 is cleaner and keeps the plugin-root knowledge inside the MCP server.
 
 ---
 
-## F-004 — (Bonus) Optional tmux split-pane open with the user's editor · OPEN
+## F-004 — (Bonus) Optional tmux split-pane open with the user's editor · DONE (PR 2)
+
+**Resolution**: New `mcp/server/src/editorOpen.ts` builds a `tmux split-window -h '<editor> <args>'` invocation when `$TMUX` and a recognized `$EDITOR` (vim/nvim/vi/mvim/code/cursor/emacs/helix/hx) are present. nextSpot embeds the result as `tmux_open_command` on the spot view; the conductor surfaces it as a copy-paste affordance ("You're in tmux — paste this to open the file in a split pane"). The agent never runs it automatically. Defensive: returns `null` for unrecognized editors rather than fabricating an invocation that might not honor the line argument.
+
+
 
 **Symptom**: Even with an absolute path printed (F-003), the learner still has to switch context — alt-tab to their editor, paste the path, hit enter. Most-friction-removed UX would be: the file just opens, ready to edit, next to the Claude pane.
 
@@ -121,7 +137,10 @@ Option 1 is cleaner and keeps the plugin-root knowledge inside the MCP server.
 
 ---
 
-## F-005 — Lesson workspace doesn't exist; need a temp-workspace + symlink design with two exercise styles · IMPLEMENTED (PR 1)
+## F-005 — Lesson workspace doesn't exist; need a temp-workspace + symlink design with two exercise styles · DONE (PR 1 + PR 2)
+
+PR 1 shipped Style A end-to-end and the workspace lifecycle. PR 2 lights up Style B (prompted-agentic): new `getNextPrompt` MCP tool, `prompt_cursor_per_spot` in state (schema bumped 2 → 3), prompted-agentic gate dropped in `selectStyle` once `prompts_dir` ships at least one `.md` file, four authored prompts under `paths/01-orderbook-viewer/prompts/p1-spot-1/`, and the conductor agent's contract gains a per-style flow. Both styles are now selectable per spot and share the same `pnpm build` verification.
+
 
 **Plan**: [`/Users/alilloig/.claude/plans/flickering-weaving-kite.md`](/Users/alilloig/.claude/plans/flickering-weaving-kite.md) (approved via ExitPlanMode 2026-05-02). Decisions: course-managed workspace dir at `~/.sui-deepbook-course/workspaces/<slug>/`, per-spot style picker, PR 1 ships Style A end-to-end + Style B scaffolded, PR 2 lights up Style B (bootstrap doc shipped: [`PR2_BOOTSTRAP.md`](./PR2_BOOTSTRAP.md)).
 

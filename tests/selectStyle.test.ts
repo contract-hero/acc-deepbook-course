@@ -252,8 +252,8 @@ describe('selectStyle — fill-in-blank happy path', () => {
   });
 });
 
-describe('selectStyle — prompted-agentic blocked in PR 1', () => {
-  it('returns style-not-yet-supported even when the spot declares it', async () => {
+describe('selectStyle — prompted-agentic gating (PR 2)', () => {
+  it('rejects with prompts-not-authored when prompts_dir is declared but empty', async () => {
     withOutputStyleEnabled();
     const projectRoot = makeTempProjectRoot();
     seedPath(projectRoot, {
@@ -266,6 +266,7 @@ describe('selectStyle — prompted-agentic blocked in PR 1', () => {
       },
     });
     await seedState(projectRoot);
+    // Note: prompts/p1-spot-1/ is NOT created → empty.
 
     const result = await runSelectStyle({
       projectRoot,
@@ -273,13 +274,45 @@ describe('selectStyle — prompted-agentic blocked in PR 1', () => {
       style: 'prompted-agentic',
     });
     expect(result.ok).toBe(false);
-    expect(result.errors?.[0]).toMatch(/style-not-yet-supported/);
+    expect(result.errors?.[0]).toMatch(/prompts-not-authored/);
 
     // No state persistence on rejection.
     const persisted = JSON.parse(
       fs.readFileSync(path.join(projectRoot, '.sui-deepbook-course', 'state.json'), 'utf8'),
     );
     expect(persisted.selected_style_per_spot?.['p1-spot-1']).toBeUndefined();
+  });
+
+  it('persists prompted-agentic when at least one prompt file exists', async () => {
+    withOutputStyleEnabled();
+    const projectRoot = makeTempProjectRoot();
+    seedPath(projectRoot, {
+      spotStyles: {
+        'fill-in-blank': { starter_file: 'starters/p1-spot-1/App.tsx', blank_range: '1-10' },
+        'prompted-agentic': {
+          prompts_dir: 'prompts/p1-spot-1/',
+          expected_files: ['src/App.tsx'],
+        },
+      },
+    });
+    // Author one prompt.
+    const promptDir = path.join(projectRoot, 'paths', '01-orderbook-viewer', 'prompts', 'p1-spot-1');
+    fs.mkdirSync(promptDir, { recursive: true });
+    fs.writeFileSync(path.join(promptDir, '01-orient.md'), '# orient\n', 'utf8');
+    await seedState(projectRoot);
+
+    const result = await runSelectStyle({
+      projectRoot,
+      spotId: 'p1-spot-1',
+      style: 'prompted-agentic',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.selected_style).toBe('prompted-agentic');
+
+    const persisted = JSON.parse(
+      fs.readFileSync(path.join(projectRoot, '.sui-deepbook-course', 'state.json'), 'utf8'),
+    );
+    expect(persisted.selected_style_per_spot?.['p1-spot-1']).toBe('prompted-agentic');
   });
 });
 

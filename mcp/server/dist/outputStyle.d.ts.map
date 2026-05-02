@@ -1,1 +1,0 @@
-{"version":3,"file":"outputStyle.d.ts","sourceRoot":"","sources":["../src/outputStyle.ts"],"names":[],"mappings":"AAIA,MAAM,WAAW,kBAAkB;IACjC,IAAI,EAAE,MAAM,CAAC;IACb,OAAO,EAAE,MAAM,CAAC;CACjB;AAED,MAAM,WAAW,iBAAiB;IAChC,EAAE,EAAE,OAAO,CAAC;IACZ,OAAO,CAAC,EAAE,kBAAkB,CAAC;CAC9B;AASD,wBAAsB,gBAAgB,IAAI,OAAO,CAAC,iBAAiB,CAAC,CA+DnE"}

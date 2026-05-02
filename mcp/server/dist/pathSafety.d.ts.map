@@ -1,1 +1,0 @@
-{"version":3,"file":"pathSafety.d.ts","sourceRoot":"","sources":["../src/pathSafety.ts"],"names":[],"mappings":"AAEA,qBAAa,kBAAmB,SAAQ,KAAK;IACxB,SAAS,EAAE,MAAM;IAAS,IAAI,EAAE,MAAM;gBAAtC,SAAS,EAAE,MAAM,EAAS,IAAI,EAAE,MAAM;CAI1D;AAED;;;;;;;;;GASG;AACH,wBAAgB,aAAa,CAAC,IAAI,EAAE,MAAM,EAAE,SAAS,EAAE,MAAM,GAAG,MAAM,CAQrE"}

@@ -85,12 +85,14 @@ describe('plugin manifest', () => {
     expect(Array.isArray(parsed.mcpServers)).toBe(false);
     expect(Object.keys(parsed.mcpServers).length).toBeGreaterThan(0);
 
-    expect(typeof parsed.commands).toBeDefined();
-    expect(parsed.commands).not.toBeUndefined();
+    // Canonical Claude Code plugin schema: commands/agents are arrays of
+    // file paths, skills is a string path. hooks is optional and absent
+    // when the plugin defines none.
+    expect(Array.isArray(parsed.commands)).toBe(true);
+    expect(parsed.commands.length).toBeGreaterThan(0);
 
-    expect(parsed.agents).not.toBeUndefined();
-    expect(parsed.skills).not.toBeUndefined();
-    expect(parsed.hooks).not.toBeUndefined();
+    expect(Array.isArray(parsed.agents)).toBe(true);
+    expect(typeof parsed.skills).toBe('string');
   });
 
   it('T-002: plugin.json mcpServers entry references the built MCP server entrypoint', () => {

@@ -9,6 +9,7 @@ import { runSelectStyle } from './tools/selectStyle.js';
 import { runNextSpot } from './tools/nextSpot.js';
 import { runVerifySpot } from './tools/verifySpot.js';
 import { runRequestHint } from './tools/requestHint.js';
+import { runGetNextPrompt } from './tools/getNextPrompt.js';
 import { PROBE_ORDER } from './preflight.js';
 import { fileURLToPath } from 'node:url';
 import * as fs from 'node:fs';
@@ -156,6 +157,25 @@ export function registerTools(server: McpServer): void {
     },
     async ({ projectRoot }) => {
       const result = await runVerifySpot({ projectRoot });
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'getNextPrompt',
+    "PR 2 — for spots in 'prompted-agentic' style, return the next markdown prompt the learner has not yet seen. Advances the per-spot prompt cursor on success. Returns done:true when the sequence is exhausted.",
+    {
+      projectRoot: z.string().describe('Absolute path to the project root'),
+    },
+    async ({ projectRoot }) => {
+      const result = await runGetNextPrompt({ projectRoot });
       return {
         content: [
           {

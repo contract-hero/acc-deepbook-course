@@ -679,8 +679,8 @@ describe('saveState — atomic write semantics', () => {
 // ---------------------------------------------------------------------------
 
 describe('STATE_SCHEMA_VERSION constant', () => {
-  it('T-066: equals 2 (bumped in F-005 to add workspace_path + selected_style_per_spot)', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(2);
+  it('T-066: equals 3 (PR 2 bumped to add prompt_cursor_per_spot for prompted-agentic style)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(3);
   });
 });
 
@@ -1262,8 +1262,8 @@ describe('cycle 4 — A15 LadderRung.auto_write_attempted (append-only)', () => 
     expect(rung.auto_write_attempted).toBe(true);
   });
 
-  it('T-270: STATE_SCHEMA_VERSION reflects the F-005 bump (was 1 in cycle 4; bumped to 2 to add workspace_path + selected_style_per_spot)', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(2);
+  it('T-270: STATE_SCHEMA_VERSION reflects the schema bumps (cycle 4 = 1, F-005 = 2, PR 2 prompted-agentic = 3)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(3);
   });
 
   it('T-271: saveState round-trip preserves auto_write_attempted (default false when not set)', async () => {

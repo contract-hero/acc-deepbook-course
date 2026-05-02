@@ -1,5 +1,7 @@
 # Hint — Wiring the Manifest to the SDK
 
+The file you're editing is at `{{ target_file_absolute }}` (lines 39–58).
+
 You need to implement three helper functions that extract configuration from the deployment manifest.
 
 For pool `{{ pool_subset }}`, the relevant pool entry is under `manifest.pools.{{ pool_subset }}`.

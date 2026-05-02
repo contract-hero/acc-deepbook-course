@@ -3,6 +3,7 @@ import { loadState } from '../state.js';
 import { loadPhases, getCurrentSpot } from '../phaseEngine.js';
 import { substitutePromptOnly } from '../personalization.js';
 import { probeOutputStyle } from '../outputStyle.js';
+import { buildTmuxOpenCommand, startLineFromRange } from '../editorOpen.js';
 import type { VerificationSpec, SpotStyles } from '../schemas/phases.js';
 import type { SpotStyleKind } from '../schemas/state.js';
 
@@ -30,6 +31,11 @@ export interface SpotView {
    * declares a styles block; otherwise omitted (legacy single-style mode). */
   available_styles?: SpotStyles;
   selected_style?: SpotStyleKind;
+  /** F-004 — `tmux split-window` invocation when $TMUX and a recognized
+   * $EDITOR are detected. The conductor surfaces it as a copy-paste
+   * affordance; the agent does not run it automatically. Absent when
+   * the affordance can't be built (no tmux, no/unknown editor). */
+  tmux_open_command?: string;
 }
 
 export interface LadderState {
@@ -148,6 +154,16 @@ export async function runNextSpot({
     if (stored !== undefined) {
       spotView.selected_style = stored;
     }
+  }
+
+  // F-004 — emit a tmux split-window command if the env supports it.
+  const tmuxCmd = buildTmuxOpenCommand({
+    filePath: targetFileAbsolute,
+    line: startLineFromRange(spot.target_range),
+    env: process.env,
+  });
+  if (tmuxCmd !== null) {
+    spotView.tmux_open_command = tmuxCmd;
   }
 
   // Ladder state for current spot

@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "selected_path": "01-orderbook-viewer",
   "personalization": {
     "poll_interval_ms": 3000,

@@ -10,6 +10,7 @@ import { runVerifySpot } from './verifySpot.js';
 import type { VerifySpawnFn } from '../verify.js';
 import type { LadderRung } from '../schemas/state.js';
 import type { SpotData } from '../schemas/phases.js';
+import { resolvePathContentRoot } from '../pathsRoot.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,8 +185,10 @@ export async function runRequestHint(
     rungRelPath = spot.rungs?.auto_write_md;
   }
 
-  // Resolve the rung content path, asserting containment under paths/<slug>/ (C012 fix)
-  const slugContentRoot = path.join(projectRoot, 'paths', slug);
+  // Resolve the rung content path, asserting containment under paths/<slug>/ (C012 fix).
+  // F-001: route through resolvePathContentRoot so plugin-installed paths work
+  // from any user cwd.
+  const slugContentRoot = resolvePathContentRoot(projectRoot, slug);
   let rungContentPath: string;
   try {
     if (rungRelPath) {

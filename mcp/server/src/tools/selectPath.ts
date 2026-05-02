@@ -9,6 +9,7 @@ import { loadPhases } from '../phaseEngine.js';
 import { probeOutputStyle } from '../outputStyle.js';
 import { prepareWorkspace, WorkspacePrepareError } from '../workspace.js';
 import type { WorkspaceOptions } from '../workspace.js';
+import { resolvePathsRoot, resolvePathContentRoot } from '../pathsRoot.js';
 
 export interface Prompt {
   name: string;
@@ -21,6 +22,10 @@ export interface Prompt {
 export interface SelectPathResult {
   ok: boolean;
   personalizationPrompts?: Prompt[];
+  /** F-002: rendered content of paths/<slug>/description.md, when present.
+   * The course-engine skill displays this BEFORE prompting for
+   * personalization, so the learner knows what they're signing up for. */
+  description?: string;
   workspacePath?: string;
   workspaceCreated?: boolean;
   workspaceArchivedTo?: string;
@@ -118,8 +123,9 @@ export async function runSelectPath(
     return { ok: false, errors: [`State schema mismatch: ${stateResult.message}`] };
   }
 
-  // Scan registry to validate slug
-  const pathsRoot = path.join(projectRoot, 'paths');
+  // Scan registry to validate slug — F-001 routes through resolvePathsRoot
+  // so the course works regardless of the user's cwd.
+  const pathsRoot = resolvePathsRoot(projectRoot);
   const registry = await scanRegistry(pathsRoot);
   const pathInfo = registry.paths.find((p) => p.slug === slug);
 
@@ -130,7 +136,7 @@ export async function runSelectPath(
   // Load path.json to get personalization_ranges
   let pathData: PathData;
   try {
-    const pathJsonPath = path.join(projectRoot, 'paths', slug, 'path.json');
+    const pathJsonPath = path.join(resolvePathContentRoot(projectRoot, slug), 'path.json');
     const raw = await fsPromises.readFile(pathJsonPath, 'utf8');
     const parsed: unknown = JSON.parse(raw);
     const validation = validatePath(parsed);
@@ -199,7 +205,20 @@ export async function runSelectPath(
   }
 
   const prompts = buildPrompts(pathData);
+
+  // F-002: best-effort load of description.md so the conductor can render it
+  // before personalization. Missing or unreadable file is fine — the field
+  // simply stays undefined.
+  let description: string | undefined;
+  try {
+    const descPath = path.join(resolvePathContentRoot(projectRoot, slug), 'description.md');
+    description = await fsPromises.readFile(descPath, 'utf8');
+  } catch {
+    /* description.md is optional */
+  }
+
   const result: SelectPathResult = { ok: true, personalizationPrompts: prompts };
+  if (description !== undefined) result.description = description;
   if (workspacePath !== undefined) result.workspacePath = workspacePath;
   if (workspaceCreated !== undefined) result.workspaceCreated = workspaceCreated;
   if (workspaceArchivedTo !== undefined) result.workspaceArchivedTo = workspaceArchivedTo;

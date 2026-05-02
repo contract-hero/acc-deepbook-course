@@ -6,6 +6,7 @@ import type { PathData } from '../schemas/path.js';
 import { validatePersonalizationValues } from '../personalization.js';
 import type { PersonalizationOptionDecl } from '../personalization.js';
 import { probeOutputStyle } from '../outputStyle.js';
+import { resolvePathContentRoot } from '../pathsRoot.js';
 
 export interface SetPersonalizationResult {
   ok: boolean;
@@ -45,7 +46,7 @@ export async function runSetPersonalization({
   // Load path.json to get declared options
   let pathData: PathData;
   try {
-    const pathJsonPath = path.join(projectRoot, 'paths', slug, 'path.json');
+    const pathJsonPath = path.join(resolvePathContentRoot(projectRoot, slug), 'path.json');
     const raw = await fsPromises.readFile(pathJsonPath, 'utf8');
     const parsed: unknown = JSON.parse(raw);
     const validation = validatePath(parsed);

@@ -1,10 +1,10 @@
-import * as path from 'node:path';
 import { probeOutputStyle } from '../outputStyle.js';
 import { scanRegistry } from '../registry.js';
 import type { PathInfo, RegistryWarning } from '../registry.js';
 import { loadState } from '../state.js';
 import type { State } from '../state.js';
 import type { StateWarning } from '../warnings.js';
+import { resolvePathsRoot } from '../pathsRoot.js';
 
 export type { StateWarning };
 
@@ -18,7 +18,7 @@ export interface StartResult {
 
 export async function runStart({ projectRoot }: { projectRoot: string }): Promise<StartResult> {
   const styleResult = await probeOutputStyle();
-  const pathsRoot = path.join(projectRoot, 'paths');
+  const pathsRoot = resolvePathsRoot(projectRoot);
   const registry = await scanRegistry(pathsRoot);
 
   if (!styleResult.ok) {

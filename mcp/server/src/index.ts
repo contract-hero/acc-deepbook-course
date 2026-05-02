@@ -10,6 +10,7 @@ import { runVerifySpot } from './tools/verifySpot.js';
 import { runRequestHint } from './tools/requestHint.js';
 import { PROBE_ORDER } from './preflight.js';
 import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
 
 // Re-export SDK seams for the in-process harness so it can resolve all
 // classes from a single import without needing @modelcontextprotocol/sdk
@@ -163,9 +164,24 @@ export function registerTools(server: McpServer): void {
   );
 }
 
-// Only start the stdio transport when this file is executed directly as a script.
-const _currentFile = fileURLToPath(import.meta.url);
-if (process.argv[1] === _currentFile) {
+// Only start the stdio transport when this file is executed directly as a
+// script. Resolve both sides through realpath so the comparison survives
+// symlinks — Claude Code installs plugins under `~/.claude/plugins/...`
+// which on this user's machine is a symlink to `~/workspace/dotfiles/.claude`,
+// and `process.argv[1]` keeps the literal symlink path while
+// `import.meta.url` resolves to the real path. A naive `===` would silently
+// skip server startup in that case.
+function _isMainEntrypoint(): boolean {
+  const argvPath = process.argv[1];
+  if (!argvPath) return false;
+  try {
+    return fs.realpathSync(argvPath) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (_isMainEntrypoint()) {
   const server = new McpServer({
     name: 'sui-deepbook-course',
     version: '1.0.0',

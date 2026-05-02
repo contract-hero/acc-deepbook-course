@@ -7,6 +7,8 @@ import { validatePath } from '../schemas/path.js';
 import type { PathData } from '../schemas/path.js';
 import { loadPhases } from '../phaseEngine.js';
 import { probeOutputStyle } from '../outputStyle.js';
+import { prepareWorkspace, WorkspacePrepareError } from '../workspace.js';
+import type { WorkspaceOptions } from '../workspace.js';
 
 export interface Prompt {
   name: string;
@@ -19,7 +21,16 @@ export interface Prompt {
 export interface SelectPathResult {
   ok: boolean;
   personalizationPrompts?: Prompt[];
+  workspacePath?: string;
+  workspaceCreated?: boolean;
+  workspaceArchivedTo?: string;
   errors?: string[];
+}
+
+export interface SelectPathOptions {
+  /** Forwarded to prepareWorkspace. Tests redirect basePath to a tmpdir and
+   * stub the install command via spawn. Production callers leave undefined. */
+  workspace?: WorkspaceOptions;
 }
 
 function buildPrompts(pathData: PathData): Prompt[] {
@@ -54,13 +65,16 @@ function buildPrompts(pathData: PathData): Prompt[] {
   return prompts;
 }
 
-export async function runSelectPath({
-  projectRoot,
-  slug,
-}: {
-  projectRoot: string;
-  slug?: unknown;
-}): Promise<SelectPathResult> {
+export async function runSelectPath(
+  {
+    projectRoot,
+    slug,
+  }: {
+    projectRoot: string;
+    slug?: unknown;
+  },
+  opts: SelectPathOptions = {},
+): Promise<SelectPathResult> {
   // L002 carry-forward: outputStyleOk gate runs BEFORE any state load
   const styleCheck = await probeOutputStyle();
   if (!styleCheck.ok) {
@@ -139,6 +153,30 @@ export async function runSelectPath({
   const firstPhase = phasesData.phases[0];
   const firstSpot = firstPhase.spots[0];
 
+  // Provision workspace BEFORE persisting state, so a failed prepare leaves no
+  // dangling state pointing at a half-built workspace. Paths without a
+  // workspace block keep working in legacy projectRoot mode (workspace_path
+  // stays unset; verifySpot falls back to projectRoot).
+  let workspacePath: string | undefined;
+  let workspaceCreated: boolean | undefined;
+  let workspaceArchivedTo: string | undefined;
+  if (pathData.workspace) {
+    try {
+      const result = await prepareWorkspace(projectRoot, slug, pathData, opts.workspace);
+      workspacePath = result.workspacePath;
+      workspaceCreated = result.created;
+      if (result.archivedTo) workspaceArchivedTo = result.archivedTo;
+    } catch (err) {
+      if (err instanceof WorkspacePrepareError) {
+        return {
+          ok: false,
+          errors: [`workspace-prepare-failed (${err.kind}): ${err.message}`],
+        };
+      }
+      throw err;
+    }
+  }
+
   // Build new state — for corrupt+archivedTo case, treat existingState as null
   // (same as the 'absent' case); for 'ok', carry forward existing personalization/history
   const existingState = stateResult.kind === 'ok' ? stateResult.state : null;
@@ -150,6 +188,7 @@ export async function runSelectPath({
     ladder: {},
     history: existingState?.history ?? [],
   };
+  if (workspacePath !== undefined) newState.workspace_path = workspacePath;
 
   // M002 carry-forward: wrap saveState in try/catch
   try {
@@ -160,7 +199,11 @@ export async function runSelectPath({
   }
 
   const prompts = buildPrompts(pathData);
-  return { ok: true, personalizationPrompts: prompts };
+  const result: SelectPathResult = { ok: true, personalizationPrompts: prompts };
+  if (workspacePath !== undefined) result.workspacePath = workspacePath;
+  if (workspaceCreated !== undefined) result.workspaceCreated = workspaceCreated;
+  if (workspaceArchivedTo !== undefined) result.workspaceArchivedTo = workspaceArchivedTo;
+  return result;
 }
 
 // Alias export expected by tests

@@ -219,7 +219,30 @@ Your progress is saved in `.sui-deepbook-course/state.json` after every passing 
 
 ---
 
-## 9. The Help Ladder (Rungs)
+## 9. The Lesson Workspace (F-005)
+
+You don't edit code in your project root or in the deepbook-sandbox checkout. The course provisions a **workspace** the first time you call `selectPath`:
+
+```
+~/.sui-deepbook-course/workspaces/<path-slug>/
+├── package.json, vite.config.ts, tsconfig*, index.html  ← seeded from paths/<slug>/hosts/...
+├── src/main.tsx                                          ← seeded from the host
+├── src/App.tsx                                           ← seeded from paths/<slug>/starters/p1-spot-1/...
+├── node_modules/                                         ← created by `pnpm install`
+└── .course-state.json                                    ← workspace metadata (schema, host_signature)
+```
+
+When you ask `nextSpot`, the response carries `target_file_absolute` pointing at `~/.sui-deepbook-course/workspaces/<slug>/src/App.tsx`. Open it in your editor; that's the file to edit. `verifySpot` runs the path's `verification.command` (e.g. `pnpm build`) **inside the workspace** — not in your project root.
+
+Workspaces are **idempotent**: re-running `selectPath` on the same slug reuses the existing workspace as long as the path's `hosts/` content is unchanged (the course fingerprints it via sha256 into `host_signature`). If the host changes, the existing workspace is archived to `<workspace>.archive-<ts>/` and a fresh one is built.
+
+To wipe a workspace and start over, delete `~/.sui-deepbook-course/workspaces/<slug>/` (or call the `resetWorkspace` MCP tool when it's exposed in PR 2).
+
+**Per-spot exercise styles**: each spot can offer two styles — `fill-in-blank` (the starter file with TODO regions you fill in) and `prompted-agentic` (a sequence of pre-written prompts you paste into Claude; PR 2 deliverable). The `selectStyle` MCP tool persists your choice into `state.selected_style_per_spot[spot_id]`. PR 1 only honors `fill-in-blank`; choosing `prompted-agentic` returns `style-not-yet-supported`.
+
+---
+
+## 10. The Help Ladder (Rungs)
 
 Each spot has three rungs of escalating help, stored as Markdown under `paths/<slug>/rungs/<spot-id>/`:
 
@@ -231,7 +254,7 @@ Rung 3 is **only** invoked through the `requestHint` MCP tool. The agent is expl
 
 ---
 
-## 10. Rebuilding / Destructive Operations
+## 11. Rebuilding / Destructive Operations
 
 There are no built-in reset commands. If you want to start a path over, manually delete the state file:
 
@@ -255,7 +278,7 @@ If `state.json` is corrupt (invalid JSON, missing `schema_version`, or schema-va
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 **`/sui-deepbook-course:start` says no paths are installed.** — `paths/01-orderbook-viewer/path.json` or `phases.json` is missing or schema-invalid. Check the `warnings` array in the tool output for the specific reason (`missing-path-json`, `malformed-phases-json`, `invalid-path-json`, etc.).
 
@@ -330,7 +353,7 @@ A `phases` array. Each phase has `id`, `title`, `explainer_md`, and a `spots` ar
 | `compile` | `command` | Spawn the command in `projectRoot`. Pass = exit 0. |
 | `simulate` | `endpoint`, `expected_status` | HTTP GET. Pass = response.status matches. |
 
-### `state.json` schema (version 1)
+### `state.json` schema (version 2 — F-005 bumped from 1)
 
 ```json
 {

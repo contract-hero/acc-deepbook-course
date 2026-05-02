@@ -1,0 +1,9 @@
+# Prompted-agentic style prompts (PR 2)
+#
+# This directory will hold per-spot prompt sequences for the
+# pre-prompted-agentic exercise style. PR 1 reserves the slot in the
+# schema (paths/<slug>/phases.json `styles["prompted-agentic"].prompts_dir`)
+# and the on-disk layout (`prompts/<spot-id>/<n>.md`); PR 2 will populate
+# the actual prompts and light up `selectStyle` for this style.
+#
+# See PR2_BOOTSTRAP.md at the repo root for the full handoff.

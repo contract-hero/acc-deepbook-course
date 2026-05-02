@@ -10,7 +10,10 @@ import type { SpawnFn, ProbeId } from '../../mcp/server/src/preflight.js';
 import { runProbe } from '../../mcp/server/src/preflight.js';
 import { runVerifySpot } from '../../mcp/server/src/tools/verifySpot.js';
 import { runRequestHint } from '../../mcp/server/src/tools/requestHint.js';
+import { runSelectPath } from '../../mcp/server/src/tools/selectPath.js';
 import type { VerifySpawnFn } from '../../mcp/server/src/verify.js';
+import type { spawn as nodeSpawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 
 interface HarnessInstance {
   callTool(toolName: string, args: Record<string, unknown>): Promise<unknown>;
@@ -178,6 +181,31 @@ export async function bootHarness(options: BootOptions): Promise<HarnessInstance
         const result = await runRequestHint(
           { projectRoot: projectRootArg, rung: rungArg },
           { spawn: stubSpawn },
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result),
+            },
+          ],
+        };
+      }
+      // F-005: harness-side selectPath interception. The path's workspace
+      // block triggers prepareWorkspace, which by default calls
+      // child_process.spawn('pnpm', ['install']) inside the workspace dir.
+      // That blows up test runtime and pollutes ~/.sui-deepbook-course on
+      // the host. Routing through runSelectPath in-process lets us thread
+      // a stub spawn through workspace options. The MCP transport would
+      // serialize the function ref away, so the in-process call is required.
+      if (toolName === 'selectPath') {
+        const projectRootArg =
+          typeof args['projectRoot'] === 'string' ? args['projectRoot'] : '';
+        const slugArg = args['slug'];
+        const stubInstallSpawn = makeNoopSpawn();
+        const result = await runSelectPath(
+          { projectRoot: projectRootArg, slug: slugArg },
+          { workspace: { spawn: stubInstallSpawn as unknown as typeof nodeSpawn } },
         );
         return {
           content: [
@@ -382,3 +410,27 @@ export async function bootHarness(options: BootOptions): Promise<HarnessInstance
 }
 
 export default bootHarness;
+
+/**
+ * Build a child_process.spawn stub that fakes a successful, instantly-exiting
+ * subprocess. Used by the selectPath interception to swallow the workspace's
+ * `pnpm install` without touching the network or polluting the host. The
+ * returned object mimics the surface workspace.ts:runHostInstall actually
+ * uses — stdout/stderr streams that emit no data and a 'close' event with
+ * exit code 0.
+ */
+function makeNoopSpawn(): unknown {
+  return ((_cmd: string, _args: string[]): unknown => {
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter;
+      stderr: EventEmitter;
+      kill: (sig?: NodeJS.Signals) => void;
+    };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = () => {};
+    // Defer the close event so the spawn caller has time to wire listeners.
+    setImmediate(() => child.emit('close', 0));
+    return child;
+  });
+}

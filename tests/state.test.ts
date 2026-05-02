@@ -473,7 +473,7 @@ describe('loadState — error classification', () => {
 describe('saveState — atomic write semantics', () => {
   function makeValidState() {
     return {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -595,7 +595,7 @@ describe('saveState — atomic write semantics', () => {
     fs.mkdirSync(stateDir, { recursive: true });
     const canonical = path.join(stateDir, 'state.json');
     const priorBytes = JSON.stringify(
-      { schema_version: 1, marker: 'PRIOR', selected_path: '01-orderbook-viewer' },
+      { schema_version: STATE_SCHEMA_VERSION, marker: 'PRIOR', selected_path: '01-orderbook-viewer' },
       null,
       2,
     );
@@ -679,8 +679,8 @@ describe('saveState — atomic write semantics', () => {
 // ---------------------------------------------------------------------------
 
 describe('STATE_SCHEMA_VERSION constant', () => {
-  it('T-066: equals 1 (initial value per spec.md ## State Schema)', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(1);
+  it('T-066: equals 2 (bumped in F-005 to add workspace_path + selected_style_per_spot)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(2);
   });
 });
 
@@ -691,7 +691,7 @@ describe('STATE_SCHEMA_VERSION constant', () => {
 describe('validateState — schema validator', () => {
   function wellFormedState() {
     return {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -711,7 +711,7 @@ describe('validateState — schema validator', () => {
     const result = validateState(input);
     expect(result.ok).toBe(true);
     expect((result as any).value).toBeTruthy();
-    expect((result as any).value.schema_version).toBe(1);
+    expect((result as any).value.schema_version).toBe(STATE_SCHEMA_VERSION);
   });
 
   it('T-068: rejects state with non-numeric schema_version', () => {
@@ -797,7 +797,7 @@ describe('saveState round-trip — non-default personalization', () => {
   it('T-094: round-trips non-default personalization values without normalization', async () => {
     const root = makeTempProjectRoot();
     const s = {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 5000, pool_subset: 'DEEP_SUI' },
       cursor: { phase_id: 'p3-poll', spot_id: 'p3-spot-1' },
@@ -892,7 +892,7 @@ describe('cycle 2 remediation — C001/C008a', () => {
 
 function makeValidStateForC3() {
   return {
-    schema_version: 1,
+    schema_version: STATE_SCHEMA_VERSION,
     selected_path: '01-orderbook-viewer',
     personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
     cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -1176,12 +1176,12 @@ describe('cycle 4 — A14 state.ts drops node:fs and fsyncSync', () => {
     const fdatasyncSpy = vi.spyOn(fs, 'fdatasync');
 
     await saveState(root, {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
       ladder: {
-        'p1-spot-1': { hint_used: false, reference_shown: false, auto_completed: false },
+        'p1-spot-1': { hint_used: false, reference_shown: false, auto_completed: false, auto_write_attempted: false },
       },
       history: [],
     });
@@ -1204,7 +1204,7 @@ describe('cycle 4 — A14 state.ts drops node:fs and fsyncSync', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sui-course-c4-'));
     tempRoots.push(root);
     const s = {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -1223,7 +1223,7 @@ describe('cycle 4 — A14 state.ts drops node:fs and fsyncSync', () => {
 describe('cycle 4 — A15 LadderRung.auto_write_attempted (append-only)', () => {
   it('T-268: validateState accepts a State whose ladder rungs lack auto_write_attempted (back-compat)', () => {
     const result = validateStateC4({
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -1243,7 +1243,7 @@ describe('cycle 4 — A15 LadderRung.auto_write_attempted (append-only)', () => 
 
   it('T-269: validateState accepts a ladder rung with auto_write_attempted: true', () => {
     const result = validateStateC4({
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },
@@ -1262,15 +1262,15 @@ describe('cycle 4 — A15 LadderRung.auto_write_attempted (append-only)', () => 
     expect(rung.auto_write_attempted).toBe(true);
   });
 
-  it('T-270: STATE_SCHEMA_VERSION stays 1 (the cycle-4 ladder field addition is append-only)', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(1);
+  it('T-270: STATE_SCHEMA_VERSION reflects the F-005 bump (was 1 in cycle 4; bumped to 2 to add workspace_path + selected_style_per_spot)', () => {
+    expect(STATE_SCHEMA_VERSION).toBe(2);
   });
 
   it('T-271: saveState round-trip preserves auto_write_attempted (default false when not set)', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sui-course-c4-'));
     tempRoots.push(root);
     const s: any = {
-      schema_version: 1,
+      schema_version: STATE_SCHEMA_VERSION,
       selected_path: '01-orderbook-viewer',
       personalization: { poll_interval_ms: 3000, pool_subset: 'both' },
       cursor: { phase_id: 'p1-bootstrap', spot_id: 'p1-spot-1' },

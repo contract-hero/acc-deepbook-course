@@ -184,8 +184,8 @@ afterEach(() => {
 // A1: registerTools registers the seventh tool
 // ---------------------------------------------------------------------------
 
-describe('registerTools — seven tools (A1)', () => {
-  it('T-001: registers exactly seven tools including requestHint', () => {
+describe('registerTools — eight tools after F-005 (A1)', () => {
+  it('T-001: registers exactly eight tools including requestHint and selectStyle', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -196,12 +196,13 @@ describe('registerTools — seven tools (A1)', () => {
       },
     } as any;
     registerTools(stubServer);
-    expect(registered.length).toBe(7);
+    expect(registered.length).toBe(8);
     expect(registered).toContain('requestHint');
     expect(registered).toContain('start');
     expect(registered).toContain('runPreflightProbe');
     expect(registered).toContain('selectPath');
     expect(registered).toContain('setPersonalization');
+    expect(registered).toContain('selectStyle');
     expect(registered).toContain('nextSpot');
     expect(registered).toContain('verifySpot');
   });
@@ -241,7 +242,7 @@ describe('registerTools — seven tools (A1)', () => {
     expect(matches.length).toBe(1);
   });
 
-  it('T-004: tools/ directory contains exactly seven .ts handler files', () => {
+  it('T-004: tools/ directory contains exactly eight .ts handler files (F-005 added selectStyle)', () => {
     const toolsDir = path.join(REPO_ROOT, 'mcp', 'server', 'src', 'tools');
     const entries = fs.readdirSync(toolsDir, { withFileTypes: true });
     const tsFiles = entries
@@ -253,13 +254,14 @@ describe('registerTools — seven tools (A1)', () => {
       'requestHint.ts',
       'runPreflightProbe.ts',
       'selectPath.ts',
+      'selectStyle.ts',
       'setPersonalization.ts',
       'start.ts',
       'verifySpot.ts',
     ]);
   });
 
-  it('T-106: registerTools registers no eighth tool', () => {
+  it('T-106: registerTools registers no ninth tool (F-005 expanded the registered set to eight)', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -275,6 +277,7 @@ describe('registerTools — seven tools (A1)', () => {
       'runPreflightProbe',
       'selectPath',
       'setPersonalization',
+      'selectStyle',
       'nextSpot',
       'verifySpot',
       'requestHint',

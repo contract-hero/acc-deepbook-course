@@ -6,6 +6,28 @@ First path shipping: **`01-orderbook-viewer`** — rebuild a real-time DeepBook 
 
 ---
 
+## Install
+
+In a Claude Code session:
+
+```
+/plugin marketplace add contract-hero/plugin-marketplace
+/plugin install sui-deepbook-course@contract-hero
+```
+
+Restart Claude Code so the MCP server spawns correctly. The course's preflight will diagnose any missing system dependencies and walk you through installing them — you don't need to set anything up ahead of time.
+
+The one exception worth installing in advance is the Sui CLI, since it has multiple install paths. The recommended one is [`suiup`](https://github.com/MystenLabs/suiup):
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/Mystenlabs/suiup/main/install.sh | sh
+suiup install sui@testnet
+```
+
+`brew install sui` works too, but `suiup` manages multiple Sui versions and matches what the bundled docs assume.
+
+---
+
 ## Learning experience
 
 You open Claude Code in a clean workspace and type:
@@ -16,7 +38,7 @@ You open Claude Code in a clean workspace and type:
 
 From there, the flow is:
 
-1. **Output-style + preflight check.** The plugin advises you to enable `learning-output-style@claude-plugins-official` (so Claude doesn't auto-implement), then probes that Node, pnpm, the Sui CLI, Docker, and the DeepBook sandbox at `localhost:9009/manifest` are all reachable. Failures surface a one-line remediation.
+1. **Output-style + preflight check.** The plugin advises you to enable `learning-output-style@claude-plugins-official` (so Claude doesn't auto-implement), then probes that Node, pnpm, the Sui CLI, Docker, and the [DeepBook sandbox](https://github.com/MystenLabs/deepbook-sandbox) at `localhost:9009/manifest` are all reachable. Failures surface a one-line remediation.
 2. **Pick a path.** Today only `Orderbook Viewer` is registered. New paths drop in as content (no engine changes — see *Tech & build* below).
 3. **Personalize.** You set bounded knobs (e.g. `poll_interval_ms` 1000–30000 ms, `pool_subset` = `DEEP_SUI` / `SUI_USDC` / `both`). Defaults work; the values are substituted into prompts and reference code.
 4. **Walk the phases.** Each path is a sequence of *phases* (e.g. *Manifest → SDK Config*, *Resilient gRPC with Retry*, *Polling Loop*). Each phase contains one or more *spots* — a numbered range of lines in a real source file (`src/App.tsx:39-58`, etc.) that you, the student, fill in.
@@ -120,3 +142,9 @@ The suite covers schema validation, the phase engine, the help ladder's gating c
 ### How it was built
 
 The repo was bootstrapped via [Code Forge](https://github.com/) — a multi-agent build pipeline — across six TDD cycles plus a Phase F polish pass. The cycle artifacts (specs, plans, evaluator notes) live under `.forge/` and are kept in-tree as the audit trail for protocol decisions (e.g. why the help ladder is strictly ordered, why rung 3 must not use Bash).
+
+---
+
+## Credits
+
+The lessons run against [Mysten Labs' `deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) — a local Sui validator with DeepBook v3 packages and pools pre-deployed and a faucet HTTP server that serves the deployment manifest. The course preflight tells you to clone it if missing, deploys it on request when the manifest endpoint is unreachable, and queries it during lessons; this repo doesn't fork or vendor it.

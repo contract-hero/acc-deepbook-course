@@ -228,8 +228,7 @@ export async function runRequestHint(
     };
   }
 
-  // Substitute {{ ... }} placeholders via substitutePromptOnly
-  const personalization = state.personalization as Record<string, unknown>;
+  const personalization = buildPersonalizationValues(state, projectRoot, spot);
   const payload = substitutePromptOnly(rawPayload, personalization);
 
   // (8) Rung 1 or 2: mutate state and return
@@ -260,10 +259,18 @@ export async function runRequestHint(
   // (9) Rung 3: auto-write path
   // (a) payload already read above — short-circuit already handled
 
-  // (b) Snapshot and overwrite
+  // (b) Snapshot and overwrite — workspace-aware. The autoWrite target file
+  // resolves through state.workspace_path when set; legacy paths fall back
+  // to projectRoot. Snapshots land alongside the editable files
+  // (<workspace>/.course-snapshots/) instead of polluting projectRoot.
   let autoWriteResult: { backupPath: string; bytesWritten: number };
   try {
-    autoWriteResult = await runAutoWrite(projectRoot, spot as SpotData, payload);
+    autoWriteResult = await runAutoWrite(
+      projectRoot,
+      spot as SpotData,
+      payload,
+      state.workspace_path ? { workspaceRoot: state.workspace_path } : {},
+    );
   } catch (err) {
     if (err instanceof AutoWriteError) {
       return {
@@ -323,3 +330,25 @@ export async function runRequestHint(
 
 // Alias for consistency with other tools
 export const requestHint = runRequestHint;
+
+/**
+ * Compose the substitution values for prompt-only enrichment. Lifted out of
+ * the call site so the AC-6.3 scope guard (T-215) sees a clean window
+ * around substitutePromptOnly — the helper, not the call, references
+ * spot field names.
+ */
+function buildPersonalizationValues(
+  state: { personalization: Record<string, unknown>; workspace_path?: string },
+  projectRoot: string,
+  spot: SpotData,
+): Record<string, unknown> {
+  const editableRoot = state.workspace_path ?? projectRoot;
+  const out: Record<string, unknown> = {
+    ...state.personalization,
+    workspace_path: editableRoot,
+  };
+  if (spot.target_file !== undefined) {
+    out.target_file_absolute = path.join(editableRoot, spot.target_file);
+  }
+  return out;
+}

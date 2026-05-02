@@ -1,8 +1,10 @@
+import * as path from 'node:path';
 import { loadState } from '../state.js';
 import { loadPhases, getCurrentSpot } from '../phaseEngine.js';
 import { substitutePromptOnly } from '../personalization.js';
 import { probeOutputStyle } from '../outputStyle.js';
-import type { VerificationSpec } from '../schemas/phases.js';
+import type { VerificationSpec, SpotStyles } from '../schemas/phases.js';
+import type { SpotStyleKind } from '../schemas/state.js';
 
 export interface DocLink {
   path: string;
@@ -12,6 +14,9 @@ export interface SpotView {
   id: string;
   title?: string;
   target_file: string;
+  /** Absolute path to the editable file. Resolved through state.workspace_path
+   * when the path declares a workspace, falling back to projectRoot otherwise. */
+  target_file_absolute: string;
   target_range: string;
   prompt: string;
   verification: VerificationSpec;
@@ -21,6 +26,10 @@ export interface SpotView {
     auto_write_md: string;
   };
   doc_links?: DocLink[];
+  /** Reserved for the per-spot style picker. Populated when the spot
+   * declares a styles block; otherwise omitted (legacy single-style mode). */
+  available_styles?: SpotStyles;
+  selected_style?: SpotStyleKind;
 }
 
 export interface LadderState {
@@ -97,9 +106,21 @@ export async function runNextSpot({
     return { done: false, error: `Spot ${spot.id} is a stub spot (incomplete fields); cannot render` };
   }
 
-  const personalization = state.personalization as Record<string, unknown>;
+  // Resolve the editable file's absolute path. Workspace-aware when state
+  // carries workspace_path; legacy projectRoot fallback otherwise.
+  const editableRoot = state.workspace_path ?? projectRoot;
+  const targetFileAbsolute = path.join(editableRoot, spot.target_file);
 
-  // Substitute prompt only — NOT target_file, target_range, or verification fields
+  // Personalization values get two course-injected variables in addition to
+  // anything the learner set. workspace_path and target_file_absolute let
+  // path-authored prompts reference real filesystem locations.
+  const personalization: Record<string, unknown> = {
+    ...(state.personalization as Record<string, unknown>),
+    workspace_path: editableRoot,
+    target_file_absolute: targetFileAbsolute,
+  };
+
+  // Prompt-only substitution; never applied to filenames or verification specs.
   const substitutedPrompt = substitutePromptOnly(spot.prompt, personalization);
 
   // Build doc_links as path-only entries (cycle-4 baseline)
@@ -110,6 +131,7 @@ export async function runNextSpot({
   const spotView: SpotView = {
     id: spot.id,
     target_file: spot.target_file,       // byte-for-byte from manifest
+    target_file_absolute: targetFileAbsolute,
     target_range: spot.target_range,     // byte-for-byte from manifest
     prompt: substitutedPrompt,
     verification: spot.verification,      // byte-for-byte from manifest
@@ -117,6 +139,16 @@ export async function runNextSpot({
   if (spot.title !== undefined) spotView.title = spot.title;
   if (spot.rungs !== undefined) spotView.rungs = spot.rungs;
   if (doc_links !== undefined) spotView.doc_links = doc_links;
+
+  // Per-spot styles: only populated when the spot declares them. PR 1 honors
+  // 'fill-in-blank'; selectStyle persists the choice into state.
+  if (spot.styles) {
+    spotView.available_styles = spot.styles;
+    const stored = state.selected_style_per_spot?.[spot.id];
+    if (stored !== undefined) {
+      spotView.selected_style = stored;
+    }
+  }
 
   // Ladder state for current spot
   const ladderRung = state.ladder[spot.id];

@@ -7,7 +7,7 @@ The user-facing onboarding doc is `SUI_DEEPBOOK_COURSE_FOR_DUMMIES.md`. This fil
 ## What This Actually Is
 
 - A Claude Code plugin manifest (`.claude-plugin/plugin.json`).
-- An **MCP server** at `mcp/server/` (TypeScript, ESM, Node 18+, MCP SDK + zod) that exposes seven tools the LLM uses to drive lessons.
+- An **MCP server** at `mcp/server/` (TypeScript, ESM, Node 18+, MCP SDK + zod) that exposes eight tools the LLM uses to drive lessons.
 - A **course-conductor agent** (`agents/course-conductor.md`) that runs the per-spot loop.
 - A **course-engine skill** (`skills/course-engine/SKILL.md`) wired to the `/sui-deepbook-course:start` slash command.
 - One **learning path** so far: `paths/01-orderbook-viewer/` (3 phases, TypeScript work against deepbook-sandbox).
@@ -36,22 +36,26 @@ The plugin manifest spawns `node mcp/server/dist/index.js` over stdio, so `pnpm 
 
 | Path | Role |
 |---|---|
-| `mcp/server/src/index.ts` | MCP entry; registers 7 tools and connects `StdioServerTransport` when run as a script. |
-| `mcp/server/src/tools/*.ts` | One file per MCP tool (`start`, `selectPath`, `setPersonalization`, `nextSpot`, `verifySpot`, `requestHint`, `runPreflightProbe`). |
+| `mcp/server/src/index.ts` | MCP entry; registers 8 tools and connects `StdioServerTransport` when run as a script. |
+| `mcp/server/src/tools/*.ts` | One file per MCP tool (`start`, `selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`, `runPreflightProbe`). |
 | `mcp/server/src/preflight.ts` | Frozen `PROBE_ORDER` + probe registry. |
 | `mcp/server/src/probes/*.ts` | One file per probe. |
 | `mcp/server/src/state.ts` | State load/save with corruption archiving and atomic writes. |
+| `mcp/server/src/workspace.ts` | F-005 — lesson workspace lifecycle: `prepareWorkspace`, `resetWorkspace`, host-signature fingerprinting, atomic metadata writes. |
 | `mcp/server/src/registry.ts` | Scans `paths/`, validates `path.json` + `phases.json` together. |
 | `mcp/server/src/phaseEngine.ts` | Phase/spot loading, current-spot resolution, cursor advancement. |
 | `mcp/server/src/personalization.ts` | `{{ key }}` substitution and option validation. |
 | `mcp/server/src/ladder.ts` | Rung gating and `runAutoWrite` (rung 3). |
 | `mcp/server/src/outputStyle.ts` | Gates every tool by reading `~/.claude/settings.json`. |
 | `mcp/server/src/pathSafety.ts` | `containedPath` guard for rung-3 file writes. |
-| `mcp/server/src/schemas/{path,phases,state}.ts` | Hand-rolled validators (no zod for these). |
-| `paths/<slug>/path.json` | Path manifest (slug, title, summary, personalization options + ranges, build_command). |
-| `paths/<slug>/phases.json` | Ordered phases → spots, each with `target_file`, `target_range`, `prompt`, `verification`, `rungs`, `doc_links`. |
+| `mcp/server/src/schemas/{path,phases,state,workspace}.ts` | Hand-rolled validators (no zod for these). `workspace.ts` schema (F-005) covers `WorkspaceMeta` for the per-workspace `.course-state.json`. |
+| `paths/<slug>/path.json` | Path manifest (slug, title, summary, personalization options + ranges, build_command, optional `workspace` block). |
+| `paths/<slug>/phases.json` | Ordered phases → spots, each with `target_file`, `target_range`, `prompt`, `verification`, `rungs`, `doc_links`, optional `styles` block. |
 | `paths/<slug>/phases/*.md` | Long-form phase explainer rendered alongside the first spot. |
 | `paths/<slug>/rungs/<spot-id>/{hint,reference,auto}.md` | The three help rungs per spot. |
+| `paths/<slug>/starters/<spot-id>/<file>` | F-005 — Style A starter files copied into the workspace by `prepareWorkspace`. |
+| `paths/<slug>/hosts/<host-name>/` | F-005 — Vite host (package.json, vite.config, tsconfig*, index.html, src/main.tsx) seeded into the workspace alongside starters. |
+| `paths/<slug>/prompts/` | F-005 reservation — Style B prompt sequences. PR 2 populates them; PR 1 ships an empty placeholder. |
 | `paths/<slug>/reference/` | Reference implementations for rung 2 / rung 3 to copy from. |
 | `tests/*.test.ts` | Vitest suites — unit + harness-level integration tests. |
 | `commands/start.md` | `/sui-deepbook-course:start` → delegates to the course-engine skill. |
@@ -59,16 +63,18 @@ The plugin manifest spawns `node mcp/server/dist/index.js` over stdio, so `pnpm 
 
 ## Architectural Invariants (do not break)
 
-1. **Output-style gate runs before any state load** in every gated tool (`selectPath`, `setPersonalization`, `nextSpot`, `verifySpot`, `requestHint`). The pattern is: probe `outputStyleOk` → return `output-style-disabled` early → only then `loadState`. Codebase calls this "L002 carry-forward". When adding new gated tools, replicate this ordering.
+1. **Output-style gate runs before any state load** in every gated tool (`selectPath`, `setPersonalization`, `selectStyle`, `nextSpot`, `verifySpot`, `requestHint`). The pattern is: probe `outputStyleOk` → return `output-style-disabled` early → only then `loadState`. Codebase calls this "L002 carry-forward". When adding new gated tools, replicate this ordering.
 2. **`paths/` registry validates `path.json` AND `phases.json` together.** A path that has a valid `path.json` but malformed `phases.json` is dropped from the registry and emitted as a warning. Don't relax this — cycle 4 onward depends on phases being load-bearing.
 3. **Rung gating is enforced server-side** as defense-in-depth even though the agent also enforces it. Rung 2 requires `hint_used: true`. Rung 3 requires `reference_shown: true`. Violations return a `rung-out-of-order` structured error.
-4. **Rung 3 (auto-write) goes through `requestHint` MCP only.** Never add a Bash side-channel for file mutation. The server snapshots the original to `.sui-deepbook-course/snapshots/...`, replaces the file, and runs the auto-verify in one transaction.
-5. **State writes are atomic.** `state.ts:saveState` writes to a `tmp` file with `wx` + `0o600`, fsyncs via `FileHandle.sync()`, then renames over the canonical path. Don't replace this with a plain `writeFile`.
+4. **Rung 3 (auto-write) goes through `requestHint` MCP only.** Never add a Bash side-channel for file mutation. For workspace-aware paths the server snapshots the original to `<workspace>/.course-snapshots/...`; for legacy paths (no workspace block) snapshots fall back to `<projectRoot>/.sui-deepbook-course/snapshots/...`. Either way, replace + auto-verify happen in one transaction.
+5. **State writes are atomic.** `state.ts:saveState` writes to a `tmp` file with `wx` + `0o600`, fsyncs via `FileHandle.sync()`, then renames over the canonical path. Don't replace this with a plain `writeFile`. The same pattern is mirrored in `workspace.ts:saveWorkspaceMeta` for `<workspace>/.course-state.json`.
 6. **Corrupt state recovery is two-tier.** If `state.json` is unreadable JSON / fails schema validation, the bytes are archived under `.sui-deepbook-course/state.corrupt-<sha256-prefix>.json` (deduped via `wx` flag, mode `0o600`) and the slot is treated as absent on the next `selectPath`. If the archive write itself fails (full disk / EACCES), `selectPath` returns an error telling the user to delete `state.json` manually — do not silently swallow that case.
-7. **`{{ ... }}` substitution is scoped to spot prompts only.** `personalization.ts:substitutePromptOnly` is the only function that performs it. Never call it on `target_file`, `target_range`, `verification.command`, or `verification.endpoint` — those are not user-controlled surfaces and substitution there would be a path-traversal vector.
+7. **`{{ ... }}` substitution is scoped to spot prompts only.** `personalization.ts:substitutePromptOnly` is the only function that performs it. Never call it on `target_file`, `target_range`, `verification.command`, or `verification.endpoint` — those are not user-controlled surfaces and substitution there would be a path-traversal vector. F-005 added two course-injected variables — `workspace_path` and `target_file_absolute` — that path-authored prompts can reference; both are computed server-side, never accepted as input.
 8. **Verification spawn is injectable.** `runVerification` accepts a `spawn` stub via `VerifySpotOptions.spawn` for hermetic tests (cycle-4 H001 fix). Don't re-introduce a module-level test override.
 9. **`auto_completed` is permanent** once set by a successful rung 3. It is never cleared — not on retry, not on session restart, not on path reset short of deleting `state.json`.
 10. **Preflight is skipped in cycle 1.** `start` always returns `preflight: { skipped: true, reason: "cycle-1" }`. Probes only run via `runPreflightProbe` on subsequent cycles. Do not move probe execution into `start`.
+11. **Workspaces are course-owned and idempotent (F-005).** `prepareWorkspace` lives at `~/.sui-deepbook-course/workspaces/<slug>/`, fingerprints the path's `hosts/` tarball into `host_signature`, and reuses an existing workspace iff that signature matches. Mismatch → archive to `<workspace>.archive-<ts>/` and recreate. The lesson `pnpm build` runs **inside the workspace**, not in projectRoot. Tests inject a stub spawn via `WorkspaceOptions.spawn` (mirrors the verify-spawn seam) and override `WorkspaceOptions.basePath` for hermetic temp dirs.
+12. **State schema versioning (F-005).** `STATE_SCHEMA_VERSION` is 2. Bumping it follows the existing recovery flow — `loadState` returns `kind: 'schema-mismatch'`, `selectPath` short-circuits with the warning, and the learner re-runs `selectPath` to mint a fresh v(N) state. Never silently coerce a v(N-1) state into v(N).
 
 ## Verification Modes
 

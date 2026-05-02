@@ -96,8 +96,8 @@ afterEach(async () => {
 // A1: registerTools registers exactly six tools
 // ---------------------------------------------------------------------------
 
-describe('registerTools — seven tools after cycle 5 (A1)', () => {
-  it('T-179: registers exactly seven tools: start, runPreflightProbe, selectPath, setPersonalization, nextSpot, verifySpot, requestHint', () => {
+describe('registerTools — eight tools after F-005 (A1)', () => {
+  it('T-179: registers exactly eight tools: start, runPreflightProbe, selectPath, setPersonalization, selectStyle, nextSpot, verifySpot, requestHint', () => {
     const registered: string[] = [];
     const stubServer = {
       tool: (name: string, ..._rest: unknown[]) => {
@@ -111,21 +111,22 @@ describe('registerTools — seven tools after cycle 5 (A1)', () => {
     registerTools(stubServer);
 
     const sorted = [...registered].sort();
-    // Cycle 5 adds requestHint (the 7th tool / A1).
+    // F-005 adds selectStyle (the 8th tool) for the per-spot exercise-style picker.
     const expected = [
       'nextSpot',
       'requestHint',
       'runPreflightProbe',
       'selectPath',
+      'selectStyle',
       'setPersonalization',
       'start',
       'verifySpot',
     ].sort();
     expect(sorted).toEqual(expected);
-    expect(registered.length).toBe(7);
+    expect(registered.length).toBe(8);
   });
 
-  it('T-180: exactly seven handler files exist under mcp/server/src/tools/', () => {
+  it('T-180: exactly eight handler files exist under mcp/server/src/tools/', () => {
     const toolsDir = path.join(REPO_ROOT, 'mcp', 'server', 'src', 'tools');
     const entries = fs.readdirSync(toolsDir, { withFileTypes: true });
     const tsFiles = entries
@@ -137,6 +138,7 @@ describe('registerTools — seven tools after cycle 5 (A1)', () => {
       'requestHint.ts',
       'runPreflightProbe.ts',
       'selectPath.ts',
+      'selectStyle.ts',
       'setPersonalization.ts',
       'start.ts',
       'verifySpot.ts',
@@ -531,22 +533,21 @@ describe('E-004 cycle-5 full ladder traversal (A2)', () => {
       expect(r3.autoVerifyResult.pass).toBe(true);
       expect(r3.autoVerifyResult.advanced).toBe(true);
 
-      // Snapshot file exists at the canonical path.
-      const bakPath = path.join(
-        projectRoot,
-        '.sui-deepbook-course',
-        'snapshots',
-        'p1-spot-1.bak',
-      );
-      expect(fs.existsSync(bakPath)).toBe(true);
-
-      // Cursor advanced and ladder reflects all three rungs.
+      // F-005: snapshot now lives under the workspace (<workspace>/.course-snapshots/)
+      // for workspace-aware paths, not the legacy <projectRoot>/.sui-deepbook-course/snapshots/.
       const stateFinal = JSON.parse(
         fs.readFileSync(
           path.join(projectRoot, '.sui-deepbook-course', 'state.json'),
           'utf8',
         ),
       );
+      const expectedSnapshotsRoot = stateFinal.workspace_path
+        ? path.join(stateFinal.workspace_path, '.course-snapshots')
+        : path.join(projectRoot, '.sui-deepbook-course', 'snapshots');
+      const bakPath = path.join(expectedSnapshotsRoot, 'p1-spot-1.bak');
+      expect(fs.existsSync(bakPath)).toBe(true);
+
+      // Cursor advanced and ladder reflects all three rungs.
       expect(stateFinal.ladder['p1-spot-1'].hint_used).toBe(true);
       expect(stateFinal.ladder['p1-spot-1'].reference_shown).toBe(true);
       expect(stateFinal.ladder['p1-spot-1'].auto_completed).toBe(true);
@@ -622,11 +623,13 @@ describe('E-004 cycle-5 full ladder traversal (A2)', () => {
       expect(afterFail.cursor.spot_id).toBe('p1-spot-1');
       expect(afterFail.ladder['p1-spot-1'].auto_completed).toBe(true);
 
-      // Snapshot present.
+      // F-005: snapshot under the workspace for workspace-aware paths,
+      // legacy projectRoot location otherwise.
+      const failSnapshotsRoot = afterFail.workspace_path
+        ? path.join(afterFail.workspace_path, '.course-snapshots')
+        : path.join(projectRoot, '.sui-deepbook-course', 'snapshots');
       expect(
-        fs.existsSync(
-          path.join(projectRoot, '.sui-deepbook-course', 'snapshots', 'p1-spot-1.bak'),
-        ),
+        fs.existsSync(path.join(failSnapshotsRoot, 'p1-spot-1.bak')),
       ).toBe(true);
 
       // Switch to pass; verifySpot now advances.

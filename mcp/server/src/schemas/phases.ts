@@ -33,6 +33,31 @@ export interface SpotRungs {
   auto_write_md: string;
 }
 
+export type SpotStyleKind = 'fill-in-blank' | 'prompted-agentic';
+
+export interface FillInBlankStyle {
+  /** Path-relative starter file (relative to the path root, e.g.
+   * "starters/p1-spot-1/App.tsx"). Copied into the workspace by
+   * prepareWorkspace; the `blank_range` lines are the regions the learner
+   * fills. */
+  starter_file: string;
+  /** Line range (e.g. "39-58") inside the starter that the learner edits. */
+  blank_range: string;
+}
+
+export interface PromptedAgenticStyle {
+  /** Path-relative directory containing the ordered prompt sequence
+   * (e.g. "prompts/p1-spot-1/"). Populated in PR 2; PR 1 reserves the field. */
+  prompts_dir: string;
+  /** Workspace-relative files the agentic flow is expected to produce. */
+  expected_files: string[];
+}
+
+export interface SpotStyles {
+  'fill-in-blank'?: FillInBlankStyle;
+  'prompted-agentic'?: PromptedAgenticStyle;
+}
+
 export interface SpotData {
   id: string;
   title?: string;
@@ -45,6 +70,9 @@ export interface SpotData {
   verification?: VerificationSpec;
   rungs?: SpotRungs;
   doc_links?: string[];
+  /** Optional per-spot exercise styles. Absent = legacy single-style behavior
+   * (Style A with target_file as the starter). PR 1 only honors fill-in-blank. */
+  styles?: SpotStyles;
 }
 
 export interface PhaseData {
@@ -308,6 +336,67 @@ export function validatePhases(v: unknown): ValidationResult<PhasesData> {
             return { ok: false, error: `Phase ${phaseId} spot ${spotId}: doc_links must be an array` };
           }
           spotData.doc_links = s['doc_links'] as string[];
+        }
+
+        if (s['styles'] !== undefined) {
+          if (typeof s['styles'] !== 'object' || s['styles'] === null || Array.isArray(s['styles'])) {
+            return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles must be an object` };
+          }
+          const styles = s['styles'] as Record<string, unknown>;
+          const result: SpotStyles = {};
+
+          if (styles['fill-in-blank'] !== undefined) {
+            if (typeof styles['fill-in-blank'] !== 'object' || styles['fill-in-blank'] === null) {
+              return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles['fill-in-blank'] must be an object` };
+            }
+            const fib = styles['fill-in-blank'] as Record<string, unknown>;
+            if (typeof fib['starter_file'] !== 'string' || typeof fib['blank_range'] !== 'string') {
+              return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles['fill-in-blank'] requires starter_file and blank_range as strings` };
+            }
+            if (!isValidRelPath(fib['starter_file'] as string)) {
+              return {
+                ok: false,
+                error: `Phase ${phaseId} spot ${spotId}: styles['fill-in-blank'].starter_file '${fib['starter_file']}' must be a relative path with no '..' segments and no leading '/'`,
+              };
+            }
+            result['fill-in-blank'] = {
+              starter_file: fib['starter_file'] as string,
+              blank_range: fib['blank_range'] as string,
+            };
+          }
+
+          if (styles['prompted-agentic'] !== undefined) {
+            if (typeof styles['prompted-agentic'] !== 'object' || styles['prompted-agentic'] === null) {
+              return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles['prompted-agentic'] must be an object` };
+            }
+            const pa = styles['prompted-agentic'] as Record<string, unknown>;
+            if (typeof pa['prompts_dir'] !== 'string') {
+              return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles['prompted-agentic'].prompts_dir must be a string` };
+            }
+            if (!isValidRelPath(pa['prompts_dir'] as string)) {
+              return {
+                ok: false,
+                error: `Phase ${phaseId} spot ${spotId}: styles['prompted-agentic'].prompts_dir '${pa['prompts_dir']}' must be a relative path with no '..' segments and no leading '/'`,
+              };
+            }
+            if (!Array.isArray(pa['expected_files'])) {
+              return { ok: false, error: `Phase ${phaseId} spot ${spotId}: styles['prompted-agentic'].expected_files must be an array` };
+            }
+            for (const ef of pa['expected_files'] as unknown[]) {
+              if (typeof ef !== 'string' || !isValidRelPath(ef)) {
+                return {
+                  ok: false,
+                  error: `Phase ${phaseId} spot ${spotId}: styles['prompted-agentic'].expected_files entries must be safe relative paths`,
+                };
+              }
+            }
+            result['prompted-agentic'] = {
+              prompts_dir: pa['prompts_dir'] as string,
+              expected_files: [...(pa['expected_files'] as string[])],
+            };
+          }
+
+          spotData.styles = result;
         }
       }
       // else: stub spot — just id + title, no new fields required

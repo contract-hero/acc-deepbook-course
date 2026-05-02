@@ -5,6 +5,7 @@ import { runStart } from './tools/start.js';
 import { runPreflightProbe } from './tools/runPreflightProbe.js';
 import { runSelectPath } from './tools/selectPath.js';
 import { runSetPersonalization } from './tools/setPersonalization.js';
+import { runSelectStyle } from './tools/selectStyle.js';
 import { runNextSpot } from './tools/nextSpot.js';
 import { runVerifySpot } from './tools/verifySpot.js';
 import { runRequestHint } from './tools/requestHint.js';
@@ -94,6 +95,29 @@ export function registerTools(server: McpServer): void {
         projectRoot,
         values: values as Record<string, unknown>,
       });
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'selectStyle',
+    "Select an exercise style ('fill-in-blank' or 'prompted-agentic') for a specific spot. PR 1 only honors 'fill-in-blank'; 'prompted-agentic' is reserved for PR 2.",
+    {
+      projectRoot: z.string().describe('Absolute path to the project root'),
+      spotId: z.string().describe('The spot id whose style to set'),
+      style: z
+        .union([z.literal('fill-in-blank'), z.literal('prompted-agentic')])
+        .describe("Exercise style: 'fill-in-blank' or 'prompted-agentic'"),
+    },
+    async ({ projectRoot, spotId, style }) => {
+      const result = await runSelectStyle({ projectRoot, spotId, style });
       return {
         content: [
           {

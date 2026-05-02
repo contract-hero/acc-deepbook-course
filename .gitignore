@@ -6,3 +6,7 @@ node_modules/
 # Personal session memory (not part of the project artifact)
 .remember/
 
+# Per-project course state (created by the MCP server when this repo is itself
+# used as a projectRoot during local testing).
+.sui-deepbook-course/
+

@@ -1,7 +1,10 @@
+import * as path from 'node:path';
+import * as fsPromises from 'node:fs/promises';
 import { loadState, saveState } from '../state.js';
 import { loadPhases, getCurrentSpot, advanceCursor } from '../phaseEngine.js';
 import { runVerification, VerificationModeUnsupportedError } from '../verify.js';
 import { probeOutputStyle } from '../outputStyle.js';
+import { validatePath } from '../schemas/path.js';
 import type { VerifySpawnFn } from '../verify.js';
 import type { VerificationSpec } from '../schemas/phases.js';
 
@@ -72,10 +75,16 @@ export async function runVerifySpot(
   // as validated by the schema (validatePhases runtime check above)
   const verSpec = (spot.verification as unknown) as VerificationSpec;
 
+  // Resolve verification cwd. Workspace-aware paths run verification under the
+  // workspace (optionally under a subdir declared in path.json
+  // workspace.verification_cwd). Legacy paths stay anchored at projectRoot so
+  // existing fixtures and tests don't move under us.
+  const verificationCwd = await resolveVerificationCwd(projectRoot, slug, state.workspace_path);
+
   // M001 carry-forward: wrap runVerification call to catch VerificationModeUnsupportedError
   let verResult: { pass: boolean; output?: string };
   try {
-    verResult = await runVerification(verSpec, projectRoot, { spawn: opts?.spawn });
+    verResult = await runVerification(verSpec, verificationCwd, { spawn: opts?.spawn });
   } catch (err) {
     if (err instanceof VerificationModeUnsupportedError) {
       return {
@@ -107,6 +116,36 @@ export async function runVerifySpot(
     // Leave cursor untouched
     return { pass: false, output: verResult.output, advanced: false };
   }
+}
+
+/**
+ * Resolve where to spawn the verification command. Path-declared
+ * `workspace.verification_cwd` is honored as a workspace-relative subdir;
+ * if path.json can't be loaded, fall back to the workspace root or the
+ * legacy projectRoot.
+ */
+async function resolveVerificationCwd(
+  projectRoot: string,
+  slug: string,
+  workspacePath: string | undefined,
+): Promise<string> {
+  if (!workspacePath) return projectRoot;
+
+  let pathRel = '.';
+  try {
+    const raw = await fsPromises.readFile(
+      path.join(projectRoot, 'paths', slug, 'path.json'),
+      'utf8',
+    );
+    const validation = validatePath(JSON.parse(raw));
+    if (validation.ok && validation.value.workspace?.verification_cwd) {
+      pathRel = validation.value.workspace.verification_cwd;
+    }
+  } catch {
+    // Best-effort: bad path.json shouldn't block verification — workspace
+    // root is the documented default anyway.
+  }
+  return path.join(workspacePath, pathRel);
 }
 
 // Alias export expected by tests

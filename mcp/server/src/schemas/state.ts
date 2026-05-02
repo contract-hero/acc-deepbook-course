@@ -19,6 +19,8 @@ export interface HistoryEntry {
   event: string;
 }
 
+export type SpotStyleKind = 'fill-in-blank' | 'prompted-agentic';
+
 export interface State {
   schema_version: number;
   selected_path: string;
@@ -26,6 +28,12 @@ export interface State {
   cursor: Cursor;
   ladder: Record<string, LadderRung>;
   history: HistoryEntry[];
+  /** Absolute path to the lesson workspace, populated by selectPath when the
+   * path declares a workspace block. Older state files (schema_version < 2)
+   * omit this. Tools resolve verification cwd and target files against it. */
+  workspace_path?: string;
+  /** Per-spot exercise style choice. PR 1 only honors 'fill-in-blank'. */
+  selected_style_per_spot?: Record<string, SpotStyleKind>;
 }
 
 type ValidationResult<T> =
@@ -96,18 +104,52 @@ export function validateState(v: unknown): ValidationResult<State> {
     }
   }
 
-  return {
-    ok: true,
-    value: {
-      schema_version: obj['schema_version'] as number,
-      selected_path: obj['selected_path'] as string,
-      personalization: obj['personalization'] as Personalization,
-      cursor: {
-        phase_id: cursor['phase_id'] as string,
-        spot_id: cursor['spot_id'] as string,
-      },
-      ladder: normalizedLadder,
-      history: obj['history'] as HistoryEntry[],
+  // Optional v2 fields. Absent in v1 state — left undefined here; the schema
+  // version check (state.ts loadState) is what gates behavioral compatibility,
+  // not field presence.
+  let workspace_path: string | undefined;
+  if (obj['workspace_path'] !== undefined) {
+    if (typeof obj['workspace_path'] !== 'string') {
+      return { ok: false, error: 'workspace_path must be a string when present' };
+    }
+    workspace_path = obj['workspace_path'] as string;
+  }
+
+  let selected_style_per_spot: Record<string, SpotStyleKind> | undefined;
+  if (obj['selected_style_per_spot'] !== undefined) {
+    if (
+      typeof obj['selected_style_per_spot'] !== 'object' ||
+      obj['selected_style_per_spot'] === null ||
+      Array.isArray(obj['selected_style_per_spot'])
+    ) {
+      return { ok: false, error: 'selected_style_per_spot must be a non-null object when present' };
+    }
+    const raw = obj['selected_style_per_spot'] as Record<string, unknown>;
+    const normalized: Record<string, SpotStyleKind> = {};
+    for (const [spotId, value] of Object.entries(raw)) {
+      if (value !== 'fill-in-blank' && value !== 'prompted-agentic') {
+        return {
+          ok: false,
+          error: `selected_style_per_spot['${spotId}'] must be 'fill-in-blank' or 'prompted-agentic'`,
+        };
+      }
+      normalized[spotId] = value;
+    }
+    selected_style_per_spot = normalized;
+  }
+
+  const value: State = {
+    schema_version: obj['schema_version'] as number,
+    selected_path: obj['selected_path'] as string,
+    personalization: obj['personalization'] as Personalization,
+    cursor: {
+      phase_id: cursor['phase_id'] as string,
+      spot_id: cursor['spot_id'] as string,
     },
+    ladder: normalizedLadder,
+    history: obj['history'] as HistoryEntry[],
   };
+  if (workspace_path !== undefined) value.workspace_path = workspace_path;
+  if (selected_style_per_spot !== undefined) value.selected_style_per_spot = selected_style_per_spot;
+  return { ok: true, value };
 }

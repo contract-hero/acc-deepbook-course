@@ -112,8 +112,17 @@ export function canAdvanceRung(
 // runAutoWrite — snapshot-then-overwrite (A7)
 // ---------------------------------------------------------------------------
 
-const STATE_DIR = '.sui-deepbook-course';
-const SNAPSHOTS_DIR = 'snapshots';
+const LEGACY_STATE_DIR = '.sui-deepbook-course';
+const LEGACY_SNAPSHOTS_DIR = 'snapshots';
+const WORKSPACE_SNAPSHOTS_DIR = '.course-snapshots';
+
+export interface RunAutoWriteOptions {
+  /** Workspace root for the active path. When set, target_file resolves
+   * against it and snapshots land under <workspace>/.course-snapshots/.
+   * When undefined (legacy path), target_file resolves against projectRoot
+   * and snapshots land under <projectRoot>/.sui-deepbook-course/snapshots/. */
+  workspaceRoot?: string;
+}
 
 /**
  * Snapshot the existing target_range bytes to a .bak file, then overwrite
@@ -131,11 +140,15 @@ export async function runAutoWrite(
   projectRoot: string,
   spot: Pick<SpotData, 'id' | 'target_file' | 'target_range'>,
   payload: string,
+  opts: RunAutoWriteOptions = {},
 ): Promise<AutoWriteResult> {
-  // (a) Resolve and contain target_file path (C021 fix)
+  // (a) Resolve and contain target_file path (C021 fix). When the path
+  // declares a workspace, files are anchored there; otherwise legacy mode
+  // anchors at projectRoot.
+  const editableRoot = opts.workspaceRoot ?? projectRoot;
   let targetFilePath: string;
   try {
-    targetFilePath = containedPath(projectRoot, spot.target_file!);
+    targetFilePath = containedPath(editableRoot, spot.target_file!);
   } catch (err) {
     if (err instanceof PathTraversalError) {
       throw new AutoWriteError(
@@ -194,8 +207,12 @@ export async function runAutoWrite(
   const originalSlice = lines.slice(sliceStart, sliceEnd);
   const snapshotContent = originalSlice.join('\n');
 
-  // (c) Write snapshot to .bak
-  const snapshotsDir = path.join(projectRoot, STATE_DIR, SNAPSHOTS_DIR);
+  // (c) Write snapshot to .bak. Workspace-aware paths keep snapshots beside
+  // the editable files; legacy paths preserve the historical location under
+  // projectRoot/.sui-deepbook-course/snapshots/.
+  const snapshotsDir = opts.workspaceRoot
+    ? path.join(opts.workspaceRoot, WORKSPACE_SNAPSHOTS_DIR)
+    : path.join(projectRoot, LEGACY_STATE_DIR, LEGACY_SNAPSHOTS_DIR);
   await fsPromises.mkdir(snapshotsDir, { recursive: true });
 
   // Resolve and contain the bak path (C022 fix) — spot.id flows into filename

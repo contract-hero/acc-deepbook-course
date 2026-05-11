@@ -1,0 +1,13 @@
+{
+  "ran_at": "2026-05-11T16:35:00Z",
+  "validation_skipped": true,
+  "reason": "Lesson authored in a single Claude Code session; the learner sub-agent dispatch pass (steps 7 of the lesson-creator workflow) was deferred to a follow-up. Both output modes still need to be exercised against this lesson before it can be marked production-ready.",
+  "follow_up_checklist": [
+    "Enable agentic-community-college + acc-deepbook-course plugins in Claude Code.",
+    "Run /agentic-community-college:start from a temp projectRoot.",
+    "Pick the slug 'acc-deepbook-course@<marketplace>/01-market-stats'.",
+    "Pass through under output style 'learning' (sub-agent leaves TODOs at the key_moment locations) and confirm `pnpm vitest run` in the workspace passes 24/24.",
+    "Repeat under output style 'explanatory' (sub-agent implements + narrates) and confirm 24/24 again.",
+    "Replace this validation.json with a real run record: { ran_at, learning: { exit_code, tests_passed, transcript_excerpt }, explanatory: { ... } }."
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "s01-manifest-bootstrap",
+      "title": "Manifest bootstrap — wire the pool catalog into the app",
+      "body_md": "sections/01-manifest-bootstrap.md",
+      "key_moment": "The pure `parseManifest` validator. Decoupling validation from filesystem I/O is what lets the same function back the Node-side fs loader AND the browser-side fetch loader; it is the single piece the learner should write themselves.",
+      "expected_files": ["src/types.ts", "src/manifest.ts"],
+      "artifact_section_id": "s01-manifest-bootstrap"
+    },
+    {
+      "id": "s02-rpc-foundation",
+      "title": "RPC foundation — read a pool's inner state via sui_getObject",
+      "body_md": "sections/02-rpc-foundation.md",
+      "key_moment": "The descent through `Versioned<PoolInner>` wrappers. The pool object's `content.fields.value.fields` path is the non-obvious bit — get it wrong and everything downstream returns undefined.",
+      "expected_files": ["src/dataLayer.ts"],
+      "artifact_section_id": "s02-rpc-foundation"
+    },
+    {
+      "id": "s03-order-book-traversal",
+      "title": "Order book traversal — decode the BigVector slices",
+      "body_md": "sections/03-order-book-traversal.md",
+      "key_moment": "Mapping an `order_id` to its price. The high bit flags ask vs bid; bits 64–127 hold the price scaled by `tick_size`. Bid prices are inverted in the order_id encoding — the data layer prefers the price field from the companion OrderInfo event to dodge that decoder ambiguity entirely.",
+      "expected_files": ["src/dataLayer.ts"],
+      "artifact_section_id": "s03-order-book-traversal"
+    },
+    {
+      "id": "s04-market-stats",
+      "title": "Pure market-stats math — mid, spread, depth",
+      "body_md": "sections/04-market-stats.md",
+      "key_moment": "The depth-within-1% calculation. It's the only piece that requires both sides of the book at once; getting the price-band boundary right (best_bid * 0.99 ≤ p ≤ best_ask * 1.01) is the bit the learner should produce themselves.",
+      "expected_files": ["src/marketStats.ts"],
+      "artifact_section_id": "s04-market-stats"
+    },
+    {
+      "id": "s05-fills-aggregation",
+      "title": "Fills pagination + 24h aggregation",
+      "body_md": "sections/05-fills-aggregation.md",
+      "key_moment": "The pagination stop condition: bail out when the page's oldest timestamp falls past the 24h window OR when 50 fills have been collected, whichever comes first. Without it `suix_queryEvents` will happily drain the entire history.",
+      "expected_files": ["src/fillFetcher.ts", "src/fillAggregator.ts"],
+      "artifact_section_id": "s05-fills-aggregation"
+    },
+    {
+      "id": "s06-app-wiring",
+      "title": "App wiring — graceful per-pool failures + 20s refresh",
+      "body_md": "sections/06-app-wiring.md",
+      "key_moment": "`Promise.allSettled` + a per-pool sentinel card. One transient pool error must not blank the whole dashboard — the dashboard is more useful with an `—` somewhere than with a blank screen.",
+      "expected_files": ["src/App.tsx", "src/main.tsx"],
+      "artifact_section_id": "s06-app-wiring"
+    }
+  ],
+  "final_verification": {
+    "mode": "test-suite",
+    "command": "pnpm vitest run"
+  }
+}

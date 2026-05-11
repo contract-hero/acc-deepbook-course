@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DeepBook Market Stats — ACC artifact</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b22;
+    --panel-2: #1f242d;
+    --border: #2a313c;
+    --fg: #d5d9e0;
+    --muted: #8b94a7;
+    --accent: #79b8ff;
+    --good: #6dd56d;
+    --warn: #e6c07b;
+    --bad: #e08585;
+    --user: #c792ea;
+    --code-bg: #0b0e13;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  body { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  header { margin-bottom: 2rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 1.6rem 0 .5rem; }
+  h3 { font-size: 0.95rem; margin: 1rem 0 .35rem; color: var(--accent); }
+  p { margin: .5rem 0; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; color: #f0f3f7; font-size: 0.88em; }
+  .lede { color: var(--muted); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--panel-2);
+    color: var(--accent);
+    margin-right: .5rem;
+  }
+  .key-moment {
+    background: rgba(199,146,234,0.08);
+    border-left: 3px solid var(--user);
+    padding: .6rem .9rem;
+    margin: .8rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+  }
+  .key-moment strong { color: var(--user); }
+  section.acc-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 0;
+    padding: 0;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .35s ease, transform .35s ease;
+    pointer-events: none;
+  }
+  section.acc-section[data-visible="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    height: auto;
+    padding: 1.2rem 1.4rem;
+    margin: 1rem 0;
+  }
+  .diagram { margin: 1rem 0; }
+  .diagram svg { max-width: 100%; height: auto; display: block; }
+  .meta { color: var(--muted); font-size: 0.85rem; margin-top: .5rem; }
+  .progress-bar {
+    height: 4px;
+    background: var(--panel);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: .6rem 0 1.6rem;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width .35s ease;
+  }
+  .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin: .5rem 0; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; vertical-align: middle; border-radius: 2px; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DeepBook Market Stats — Build Atlas</h1>
+  <p class="lede" id="acc-progress">Lesson loading…</p>
+  <div class="progress-bar"><div class="fill" id="acc-progress-fill"></div></div>
+</header>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s01-manifest-bootstrap">
+  <h2><span class="badge">1</span>Manifest bootstrap</h2>
+  <p>Read <code>localnet.json</code> from disk (Node) or via <code>fetch</code> (browser). Validate. Surface two things: <code>deepbookPackageId</code> and a typed <code>PoolDescriptor[]</code>.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr1" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+      <!-- left: file -->
+      <rect x="20" y="80" width="180" height="110" rx="8" fill="#161b22" stroke="#2a313c"/>
+      <text x="110" y="110" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#d5d9e0">localnet.json</text>
+      <text x="110" y="135" text-anchor="middle" font-size="10" fill="#8b94a7">packages.deepbook.packageId</text>
+      <text x="110" y="152" text-anchor="middle" font-size="10" fill="#8b94a7">pools { DEEP_SUI: {…}, SUI_USDC: {…} }</text>
+      <text x="110" y="175" text-anchor="middle" font-size="10" fill="#6dd56d">~/workspace/deepbook-sandbox/…</text>
+
+      <!-- middle: validator -->
+      <rect x="280" y="80" width="220" height="110" rx="8" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="390" y="115" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#c792ea" font-weight="600">parseManifest(parsed)</text>
+      <text x="390" y="138" text-anchor="middle" font-size="10" fill="#d5d9e0">PURE — no I/O</text>
+      <text x="390" y="155" text-anchor="middle" font-size="10" fill="#8b94a7">throws actionable errors</text>
+      <text x="390" y="172" text-anchor="middle" font-size="10" fill="#8b94a7">backs both Node + browser callers</text>
+
+      <!-- right: result -->
+      <rect x="580" y="80" width="200" height="110" rx="8" fill="#161b22" stroke="#2a313c"/>
+      <text x="680" y="110" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#d5d9e0">LoadedManifest</text>
+      <text x="680" y="135" text-anchor="middle" font-size="10" fill="#8b94a7">deepbookPackageId: string</text>
+      <text x="680" y="152" text-anchor="middle" font-size="10" fill="#8b94a7">pools: PoolDescriptor[]</text>
+      <text x="680" y="175" text-anchor="middle" font-size="10" fill="#79b8ff">used by every later RPC</text>
+
+      <!-- arrows -->
+      <line x1="205" y1="135" x2="275" y2="135" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr1)"/>
+      <line x1="505" y1="135" x2="575" y2="135" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr1)"/>
+
+      <!-- labels on top -->
+      <text x="110" y="55" text-anchor="middle" font-size="11" fill="#8b94a7">INPUT</text>
+      <text x="390" y="55" text-anchor="middle" font-size="11" fill="#c792ea">YOUR CODE</text>
+      <text x="680" y="55" text-anchor="middle" font-size="11" fill="#8b94a7">OUTPUT</text>
+
+      <!-- caller note -->
+      <text x="390" y="225" text-anchor="middle" font-size="10" fill="#8b94a7">callers:</text>
+      <text x="280" y="245" text-anchor="middle" font-size="10" fill="#6dd56d">loadManifest(path) → Node fs</text>
+      <text x="500" y="245" text-anchor="middle" font-size="10" fill="#6dd56d">main.tsx → fetch('/localnet.json')</text>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> Keep the validator pure. <code>fs.readFile</code> goes in the Node wrapper, not in the validator — otherwise the browser bundle breaks the moment you import it.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s02-rpc-foundation">
+  <h2><span class="badge">2</span>RPC foundation — sui_getObject + descent</h2>
+  <p>The pool's state lives on chain inside a <code>Versioned&lt;PoolInner&gt;</code> wrapper. To read it you call <code>sui_getObject</code>, then walk the JSON down a specific field path. Get the path wrong and every later lookup returns <code>undefined</code>.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+
+      <!-- RPC call -->
+      <rect x="20" y="30" width="320" height="60" rx="6" fill="#1f242d" stroke="#2a313c"/>
+      <text x="180" y="55" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff">POST http://127.0.0.1:9000</text>
+      <text x="180" y="73" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">sui_getObject(poolId, { showContent: true })</text>
+
+      <!-- response tree -->
+      <rect x="20" y="120" width="500" height="220" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="35" y="142" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">response.data</text>
+      <text x="50" y="162" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">└─ content</text>
+      <text x="75" y="182" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">└─ fields</text>
+      <text x="100" y="202" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">├─ id        <tspan fill="#5d6471">(outer Pool UID — discard)</tspan></text>
+      <text x="100" y="222" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">└─ value</text>
+      <text x="125" y="242" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">└─ fields                ← PoolInner</text>
+      <text x="150" y="262" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">├─ pool_id</text>
+      <text x="150" y="282" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">└─ book.fields</text>
+      <text x="175" y="302" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">├─ asks: BigVector&lt;Order&gt;</text>
+      <text x="175" y="318" font-family="ui-monospace, monospace" font-size="11" fill="#e08585">├─ bids: BigVector&lt;Order&gt;</text>
+      <text x="175" y="334" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">└─ lot_size, min_size, tick_size</text>
+
+      <!-- annotation arrow -->
+      <line x1="540" y1="226" x2="700" y2="226" stroke="#c792ea" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="620" y="218" text-anchor="middle" font-size="10" fill="#c792ea">the path to remember</text>
+      <text x="620" y="246" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea">content.fields.value.fields</text>
+
+      <!-- arrow from request to response -->
+      <line x1="180" y1="92" x2="180" y2="116" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr2)"/>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> <code>content.fields.value.fields</code>. The <code>value.fields</code> hop is the Versioned wrapper — easy to miss because the SDK normally hides it. No compile-time check protects you here; the tests in <code>chainShape.test.ts</code> are your safety net.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s03-order-book-traversal">
+  <h2><span class="badge">3</span>Order book traversal + order_id decode</h2>
+  <p><code>BigVector&lt;Order&gt;</code> stores its elements in dynamic-field <em>slices</em>. To enumerate them you list the slices via <code>suix_getDynamicFields</code>, then read each slice's content with <code>sui_getObject</code>. Each <code>Order</code> carries an <code>order_id: u128</code> that encodes price + side + sequence.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+
+      <!-- left: BigVector meta -->
+      <rect x="20" y="20" width="170" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="105" y="44" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">BigVectorMeta</text>
+      <text x="105" y="62" text-anchor="middle" font-size="10" fill="#8b94a7">root_id, length,</text>
+      <text x="105" y="78" text-anchor="middle" font-size="10" fill="#8b94a7">max_slice_size</text>
+
+      <!-- middle: list slices -->
+      <rect x="230" y="20" width="220" height="80" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="1.5"/>
+      <text x="340" y="44" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">suix_getDynamicFields</text>
+      <text x="340" y="62" text-anchor="middle" font-size="10" fill="#d5d9e0">enumerates slice object IDs</text>
+      <text x="340" y="78" text-anchor="middle" font-size="10" fill="#8b94a7">pages until hasNextPage = false</text>
+
+      <!-- right: slice fetch -->
+      <rect x="490" y="20" width="290" height="80" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="1.5"/>
+      <text x="635" y="44" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">sui_getObject(sliceId)</text>
+      <text x="635" y="62" text-anchor="middle" font-size="10" fill="#d5d9e0">one call per slice</text>
+      <text x="635" y="78" text-anchor="middle" font-size="10" fill="#e6c07b">skip silently on 404 (slices churn)</text>
+
+      <!-- arrows -->
+      <line x1="195" y1="60" x2="225" y2="60" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr3)"/>
+      <line x1="455" y1="60" x2="485" y2="60" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr3)"/>
+
+      <!-- order_id bit decoder -->
+      <text x="400" y="140" text-anchor="middle" font-size="11" fill="#8b94a7">order_id (u128) bit layout</text>
+
+      <rect x="120" y="160" width="560" height="60" rx="4" fill="#161b22" stroke="#2a313c"/>
+      <rect x="120" y="160" width="20" height="60" fill="#c792ea" opacity=".45"/>
+      <rect x="140" y="160" width="280" height="60" fill="#79b8ff" opacity=".25"/>
+      <rect x="420" y="160" width="260" height="60" fill="#5d6471" opacity=".25"/>
+      <line x1="140" y1="160" x2="140" y2="220" stroke="#2a313c"/>
+      <line x1="420" y1="160" x2="420" y2="220" stroke="#2a313c"/>
+
+      <text x="130" y="195" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">127</text>
+      <text x="280" y="195" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff" font-weight="600">126…64</text>
+      <text x="550" y="195" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#8b94a7">63…0</text>
+
+      <text x="130" y="240" text-anchor="middle" font-size="10" fill="#c792ea">is_ask flag</text>
+      <text x="280" y="240" text-anchor="middle" font-size="10" fill="#79b8ff">scaled price (× tick_size)</text>
+      <text x="550" y="240" text-anchor="middle" font-size="10" fill="#8b94a7">sequence #</text>
+
+      <!-- bid warning -->
+      <rect x="40" y="280" width="720" height="80" rx="6" fill="#161b22" stroke="#e08585"/>
+      <text x="55" y="302" font-family="ui-monospace, monospace" font-size="11" fill="#e08585" font-weight="600">⚠ bid prices are INVERTED in order_id</text>
+      <text x="55" y="322" font-size="11" fill="#d5d9e0">Bid orders sort descending; the contract stores them ascending by <tspan font-family="ui-monospace, monospace">MAX - price</tspan>.</text>
+      <text x="55" y="340" font-size="11" fill="#d5d9e0">Robust path: join each Order to its companion <tspan font-family="ui-monospace, monospace">OrderInfo</tspan> event and use <tspan font-family="ui-monospace, monospace" fill="#c792ea">event.price</tspan> (display units).</text>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> The Order→OrderInfo-event join. Bid prices come out right if you prefer the event's <code>price</code> field; if you bit-decode them you get nonsense for half the order book.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s04-market-stats">
+  <h2><span class="badge">4</span>Pure market-stats math</h2>
+  <p>With the order book decoded as two sorted <code>{ price, qty }[]</code> arrays, the rest is just functions. Mid price, spread, depth band — pure inputs, pure outputs, no I/O.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg">
+      <!-- order book columns -->
+      <text x="200" y="30" text-anchor="middle" font-size="12" fill="#e08585" font-weight="600">ASKS (ascending)</text>
+      <text x="600" y="30" text-anchor="middle" font-size="12" fill="#6dd56d" font-weight="600">BIDS (descending)</text>
+
+      <!-- ask rows -->
+      <g font-family="ui-monospace, monospace" font-size="11">
+        <rect x="50" y="50" width="300" height="20" fill="#1f242d" opacity=".4"/>
+        <text x="60" y="65" fill="#e08585">1.0240</text> <rect x="200" y="55" width="120" height="10" fill="#e08585" opacity=".5"/>
+        <text x="330" y="65" text-anchor="end" fill="#8b94a7">120</text>
+
+        <rect x="50" y="74" width="300" height="20" fill="#1f242d" opacity=".4"/>
+        <text x="60" y="89" fill="#e08585">1.0180</text> <rect x="200" y="79" width="90" height="10" fill="#e08585" opacity=".5"/>
+        <text x="330" y="89" text-anchor="end" fill="#8b94a7">90</text>
+
+        <rect x="50" y="98" width="300" height="20" fill="#1f242d" opacity=".4"/>
+        <text x="60" y="113" fill="#e08585">1.0120</text> <rect x="200" y="103" width="55" height="10" fill="#e08585" opacity=".5"/>
+        <text x="330" y="113" text-anchor="end" fill="#8b94a7">55</text>
+
+        <rect x="50" y="122" width="300" height="22" fill="#e08585" opacity=".15" stroke="#e08585"/>
+        <text x="60" y="138" fill="#e08585" font-weight="700">1.0050</text>
+        <rect x="200" y="128" width="40" height="10" fill="#e08585" opacity=".7"/>
+        <text x="330" y="138" text-anchor="end" fill="#d5d9e0">40   ← best_ask</text>
+      </g>
+
+      <!-- bid rows -->
+      <g font-family="ui-monospace, monospace" font-size="11">
+        <rect x="450" y="122" width="300" height="22" fill="#6dd56d" opacity=".15" stroke="#6dd56d"/>
+        <text x="460" y="138" fill="#6dd56d" font-weight="700">0.9980</text>
+        <rect x="500" y="128" width="50" height="10" fill="#6dd56d" opacity=".7"/>
+        <text x="740" y="138" text-anchor="end" fill="#d5d9e0">best_bid →   50</text>
+
+        <rect x="450" y="146" width="300" height="20" fill="#1f242d" opacity=".4"/>
+        <text x="460" y="161" fill="#6dd56d">0.9920</text> <rect x="500" y="151" width="80" height="10" fill="#6dd56d" opacity=".5"/>
+        <text x="740" y="161" text-anchor="end" fill="#8b94a7">80</text>
+
+        <rect x="450" y="170" width="300" height="20" fill="#1f242d" opacity=".4"/>
+        <text x="460" y="185" fill="#6dd56d">0.9860</text> <rect x="500" y="175" width="100" height="10" fill="#6dd56d" opacity=".5"/>
+        <text x="740" y="185" text-anchor="end" fill="#8b94a7">100</text>
+      </g>
+
+      <!-- mid + spread band -->
+      <line x1="50" y1="155" x2="750" y2="155" stroke="#79b8ff" stroke-dasharray="3 3" opacity=".6"/>
+      <text x="400" y="151" text-anchor="middle" font-size="11" fill="#79b8ff" font-weight="600">mid = (1.0050 + 0.9980) / 2 = 1.0015</text>
+
+      <!-- depth band visualization -->
+      <rect x="50" y="220" width="700" height="80" rx="6" fill="#161b22" stroke="#c792ea" stroke-width="1.5"/>
+      <text x="400" y="244" text-anchor="middle" font-size="12" fill="#c792ea" font-weight="600">depth_within_1%</text>
+      <text x="400" y="266" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">sum(qty) where best_bid × 0.99 ≤ price ≤ best_ask × 1.01</text>
+      <text x="400" y="286" text-anchor="middle" font-size="11" fill="#d5d9e0">band: <tspan fill="#6dd56d">0.9880</tspan>…<tspan fill="#e08585">1.0150</tspan>   →   qty: <tspan fill="#79b8ff">40 + 55 + 50 + 80 = 225</tspan></text>
+
+      <!-- bug bait -->
+      <text x="400" y="320" text-anchor="middle" font-size="10" fill="#e6c07b">⚠ band uses each <tspan font-family="ui-monospace, monospace">best_*</tspan>, not <tspan font-family="ui-monospace, monospace">mid</tspan>. With wide spread the two differ — get this wrong and depth metric drifts up under stress.</text>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> Anchor the depth band on each side's best price, not on mid. The math looks symmetric but it isn't — and the divergence shows up exactly when you need the metric to be most honest.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s05-fills-aggregation">
+  <h2><span class="badge">5</span>Fills pagination + 24h aggregation</h2>
+  <p>The order book is a snapshot. To compute <em>last price</em>, <em>24h volume</em>, and the <em>sparkline</em>, you need recent trades — DeepBook emits <code>OrderInfo</code> events for every placement, with embedded fills under <code>fills[]</code>.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr5" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+
+      <!-- timeline -->
+      <line x1="40" y1="160" x2="760" y2="160" stroke="#2a313c" stroke-width="2"/>
+      <text x="40" y="180" font-size="10" fill="#8b94a7">now − 24h</text>
+      <text x="760" y="180" text-anchor="end" font-size="10" fill="#8b94a7">now</text>
+
+      <!-- 24h band -->
+      <rect x="200" y="148" width="560" height="24" fill="#6dd56d" opacity=".12" stroke="#6dd56d" stroke-dasharray="3 3"/>
+      <text x="480" y="142" text-anchor="middle" font-size="10" fill="#6dd56d">24h window</text>
+
+      <!-- fills (each box = one fill) -->
+      <g>
+        <rect x="730" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="700" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="650" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="610" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="560" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="500" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="440" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="380" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="310" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="240" y="155" width="14" height="14" fill="#79b8ff"/>
+        <rect x="180" y="155" width="14" height="14" fill="#5d6471"/>
+        <rect x="120" y="155" width="14" height="14" fill="#5d6471"/>
+        <rect x="60" y="155" width="14" height="14" fill="#5d6471"/>
+      </g>
+
+      <!-- pagination cursor -->
+      <path d="M 760 130 Q 600 90, 440 130" fill="none" stroke="#c792ea" stroke-width="2" marker-end="url(#arr5)"/>
+      <text x="600" y="98" text-anchor="middle" font-size="11" fill="#c792ea" font-weight="600">suix_queryEvents (descending)</text>
+      <text x="600" y="118" text-anchor="middle" font-size="10" fill="#c792ea">walks backwards, page by page</text>
+
+      <!-- stop conditions box -->
+      <rect x="40" y="220" width="720" height="80" rx="6" fill="#161b22" stroke="#c792ea" stroke-width="1.5"/>
+      <text x="55" y="244" font-size="12" fill="#c792ea" font-weight="600">Two stop conditions — whichever trips first wins:</text>
+      <text x="55" y="266" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">(1) page's oldest ts &lt; now − 24h   ← age bound (the green band)</text>
+      <text x="55" y="284" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">(2) fills.length ≥ 50              ← count bound (busy pools won't wedge you)</text>
+
+      <!-- legend -->
+      <g transform="translate(40, 30)">
+        <rect width="10" height="10" fill="#79b8ff"/><text x="16" y="9" font-size="10" fill="#d5d9e0">fill in window (kept)</text>
+        <rect x="150" width="10" height="10" fill="#5d6471"/><text x="166" y="9" font-size="10" fill="#d5d9e0">older than 24h (dropped)</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> Both stop conditions. Drop (1) and a quiet sandbox makes you fetch forever; drop (2) and a busy minute wedges the pager on a single page.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s06-app-wiring">
+  <h2><span class="badge">6</span>App wiring — graceful per-pool failures</h2>
+  <p>Mount the React app. Load the manifest once. Fan out per-pool fetches every 20 seconds. <strong>One transient pool error must not blank the whole dashboard.</strong></p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr6" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+
+      <!-- App -->
+      <rect x="320" y="20" width="160" height="50" rx="6" fill="#1f242d" stroke="#2a313c"/>
+      <text x="400" y="44" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#d5d9e0">&lt;App deps={deps} /&gt;</text>
+      <text x="400" y="60" text-anchor="middle" font-size="10" fill="#8b94a7">setInterval 20s</text>
+
+      <!-- fanout -->
+      <rect x="290" y="100" width="220" height="50" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="400" y="124" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">Promise.allSettled</text>
+      <text x="400" y="142" text-anchor="middle" font-size="10" fill="#d5d9e0">pools.map(fetchPoolStats)</text>
+      <line x1="400" y1="70" x2="400" y2="98" stroke="#79b8ff" stroke-width="2" marker-end="url(#arr6)"/>
+
+      <!-- three pool fetches -->
+      <g>
+        <rect x="40" y="180" width="180" height="50" rx="6" fill="#161b22" stroke="#6dd56d"/>
+        <text x="130" y="204" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">DEEP/SUI</text>
+        <text x="130" y="220" text-anchor="middle" font-size="10" fill="#6dd56d">fulfilled</text>
+
+        <rect x="310" y="180" width="180" height="50" rx="6" fill="#161b22" stroke="#e08585"/>
+        <text x="400" y="204" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#e08585">SUI/USDC</text>
+        <text x="400" y="220" text-anchor="middle" font-size="10" fill="#e08585">rejected (RPC hiccup)</text>
+
+        <rect x="580" y="180" width="180" height="50" rx="6" fill="#161b22" stroke="#6dd56d"/>
+        <text x="670" y="204" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">USDC/USDT</text>
+        <text x="670" y="220" text-anchor="middle" font-size="10" fill="#6dd56d">fulfilled</text>
+
+        <line x1="350" y1="150" x2="170" y2="178" stroke="#2a313c" stroke-width="1.5" marker-end="url(#arr6)"/>
+        <line x1="400" y1="150" x2="400" y2="178" stroke="#2a313c" stroke-width="1.5" marker-end="url(#arr6)"/>
+        <line x1="450" y1="150" x2="630" y2="178" stroke="#2a313c" stroke-width="1.5" marker-end="url(#arr6)"/>
+      </g>
+
+      <!-- cards row -->
+      <g>
+        <rect x="40" y="260" width="180" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+        <text x="50" y="280" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">DEEP/SUI</text>
+        <text x="50" y="298" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">mid:    1.0015</text>
+        <text x="50" y="312" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">vol24h: 12,400</text>
+        <text x="50" y="326" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">▁▂▃▅▆█▇▆▅▃▂</text>
+
+        <rect x="310" y="260" width="180" height="80" rx="6" fill="#161b22" stroke="#e08585" stroke-dasharray="4 3"/>
+        <text x="320" y="280" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">SUI/USDC</text>
+        <text x="320" y="298" font-family="ui-monospace, monospace" font-size="10" fill="#8b94a7">mid:    —</text>
+        <text x="320" y="312" font-family="ui-monospace, monospace" font-size="10" fill="#8b94a7">vol24h: —</text>
+        <text x="320" y="326" font-family="ui-monospace, monospace" font-size="10" fill="#8b94a7">▁▁▁▁▁▁▁▁▁ (empty)</text>
+
+        <rect x="580" y="260" width="180" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+        <text x="590" y="280" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">USDC/USDT</text>
+        <text x="590" y="298" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">mid:    0.9998</text>
+        <text x="590" y="312" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">vol24h: 84,200</text>
+        <text x="590" y="326" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">▃▄▃▅▄▅▆▅▄▃▄</text>
+
+        <line x1="130" y1="232" x2="130" y2="258" stroke="#79b8ff" stroke-width="1.5" marker-end="url(#arr6)"/>
+        <line x1="400" y1="232" x2="400" y2="258" stroke="#e08585" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr6)"/>
+        <line x1="670" y1="232" x2="670" y2="258" stroke="#79b8ff" stroke-width="1.5" marker-end="url(#arr6)"/>
+      </g>
+
+      <text x="400" y="358" text-anchor="middle" font-size="11" fill="#c792ea">Dashboard stays useful with one bad pool, instead of going blank.</text>
+    </svg>
+  </div>
+
+  <div class="key-moment">
+    <strong>Key moment:</strong> <code>Promise.allSettled</code> + <code>sentinelCard()</code>. The PoolCard component renders <code>—</code> for any undefined field, so a sentinel card is just a card with every stat undefined. The user sees clearly-degraded data instead of a blank screen.
+  </div>
+  <p class="meta">Final check: <code>pnpm vitest run</code> — all 24 tests pass. Lesson complete.</p>
+</section>
+
+<script>
+  // ACC artifact poller. Re-reads ./artifact-state.json every 2 seconds and
+  // reveals sections whose id appears in `revealed[]`. The MCP tool
+  // `advanceArtifact` rewrites artifact-state.json atomically; this poller
+  // is what makes the page "evolve" without a server.
+  (async function poll() {
+    const progress = document.getElementById('acc-progress');
+    const progressFill = document.getElementById('acc-progress-fill');
+    let lastUpdate = '';
+    while (true) {
+      try {
+        const r = await fetch('./artifact-state.json?_=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const s = await r.json();
+          if (s.updated_at !== lastUpdate) {
+            lastUpdate = s.updated_at;
+            const revealed = new Set(s.revealed || []);
+            for (const sec of document.querySelectorAll('section.acc-section')) {
+              const id = sec.getAttribute('data-section-id');
+              sec.setAttribute('data-visible', revealed.has(id) ? 'true' : 'false');
+            }
+            const cur = (typeof s.cursor === 'number') ? s.cursor + 1 : 0;
+            const total = s.total_sections ?? 6;
+            const mode = s.mode ?? '?';
+            if (progress) progress.textContent = 'Section ' + cur + ' of ' + total + ' · output mode: ' + mode;
+            if (progressFill) progressFill.style.width = (total > 0 ? (cur / total) * 100 : 0) + '%';
+          }
+        }
+      } catch (e) {
+        /* swallow — file may be mid-rename */
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  })();
+</script>
+
+</body>
+</html>

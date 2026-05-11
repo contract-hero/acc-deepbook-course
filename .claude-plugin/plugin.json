@@ -14,6 +14,88 @@
     "acc-content"
   ],
   "accContent": {
-    "lessons": "./lessons/"
+    "lessons": "./lessons/",
+    "probes": [
+      {
+        "id": "node-version",
+        "kind": "shell-exit-zero",
+        "message_pass": "Node.js is installed.",
+        "message_fail": "Node.js 18+ is required. Install from https://nodejs.org or via fnm/nvm.",
+        "params": {
+          "command": "node",
+          "args": ["--version"],
+          "expected_stdout_regex": "^v(1[89]|[2-9]\\d|\\d{3,})\\.",
+          "timeout_ms": 5000
+        }
+      },
+      {
+        "id": "pnpm-available",
+        "kind": "shell-exit-zero",
+        "message_pass": "pnpm is installed.",
+        "message_fail": "pnpm is required. Install via `npm install -g pnpm` or follow https://pnpm.io/installation.",
+        "params": {
+          "command": "pnpm",
+          "args": ["--version"],
+          "timeout_ms": 5000
+        }
+      },
+      {
+        "id": "docker-running",
+        "kind": "shell-exit-zero",
+        "message_pass": "Docker daemon is reachable.",
+        "message_fail": "Docker is not running. Start Docker Desktop and re-run.",
+        "params": {
+          "command": "docker",
+          "args": ["info"],
+          "timeout_ms": 10000
+        }
+      },
+      {
+        "id": "sui-cli-version",
+        "kind": "shell-exit-zero",
+        "message_pass": "Sui CLI is installed.",
+        "message_fail": "Sui CLI not found. Install: https://docs.sui.io/build/install — the deepbook-sandbox bring-up scripts need it.",
+        "params": {
+          "command": "sui",
+          "args": ["--version"],
+          "timeout_ms": 5000
+        }
+      },
+      {
+        "id": "sui-pilot-enabled",
+        "kind": "claude-plugin-enabled",
+        "message_pass": "sui-pilot plugin is enabled.",
+        "message_fail": "Enable the sui-pilot plugin for Move/Sui doc grounding: `claude plugins enable sui-pilot@claude-plugins-official`.",
+        "params": {
+          "plugin_key": "sui-pilot@claude-plugins-official"
+        }
+      },
+      {
+        "id": "sandbox-repo-present",
+        "kind": "filesystem-exists",
+        "message_pass": "deepbook-sandbox checkout found at ~/workspace/deepbook-sandbox.",
+        "message_fail": "Clone https://github.com/MystenLabs/deepbook-sandbox to ~/workspace/deepbook-sandbox/ — the path is load-bearing (the lesson reference apps' vite.config.ts reads from it directly).",
+        "params": {
+          "path": "~/workspace/deepbook-sandbox"
+        }
+      },
+      {
+        "id": "sandbox-manifest-reachable",
+        "kind": "http-get",
+        "message_pass": "Sandbox faucet manifest is reachable on http://localhost:9009/manifest.",
+        "message_fail": "Sandbox faucet manifest is not reachable on http://localhost:9009/manifest. Bring up the Docker stack and run `pnpm deploy-all` from ~/workspace/deepbook-sandbox/sandbox.",
+        "params": {
+          "url": "http://localhost:9009/manifest",
+          "expected_status": 200,
+          "timeout_ms": 5000
+        },
+        "remediation": {
+          "kind": "shell",
+          "command": "pnpm deploy-all --quick",
+          "cwd": "~/workspace/deepbook-sandbox/sandbox",
+          "timeout_ms": 180000
+        }
+      }
+    ]
   }
 }

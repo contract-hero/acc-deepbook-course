@@ -6,7 +6,11 @@
   "build_command": "pnpm install && pnpm vitest run",
   "test_command": "pnpm vitest run",
   "prerequisites": [
+    "node-version",
+    "pnpm-available",
     "docker-running",
+    "sui-cli-version",
+    "sui-pilot-enabled",
     "sandbox-repo-present",
     "sandbox-manifest-reachable"
   ],

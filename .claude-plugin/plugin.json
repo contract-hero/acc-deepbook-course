@@ -65,9 +65,9 @@
         "id": "sui-pilot-enabled",
         "kind": "claude-plugin-enabled",
         "message_pass": "sui-pilot plugin is enabled.",
-        "message_fail": "Enable the sui-pilot plugin for Move/Sui doc grounding: `claude plugins enable sui-pilot@claude-plugins-official`.",
+        "message_fail": "Enable the sui-pilot plugin for Move/Sui doc grounding: `claude plugins enable sui-pilot@contract-hero`.",
         "params": {
-          "plugin_key": "sui-pilot@claude-plugins-official"
+          "plugin_key": "sui-pilot@contract-hero"
         }
       },
       {

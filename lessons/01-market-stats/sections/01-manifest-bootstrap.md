@@ -1,6 +1,6 @@
 # Section 1 — Manifest bootstrap
 
-The DeepBook sandbox writes its deployment state to `<sandbox-path>/sandbox/deployments/localnet.json`. The reference app's Vite middleware resolves `<sandbox-path>` at dev-server startup by reading the `ACC_PATHS_SANDBOX` env var that ACC injects into the workspace; if the var is unset (you're running the app standalone outside ACC), it falls back to `~/workspace/deepbook-sandbox`. To relocate the checkout permanently, edit `~/.acc/config.json` and set `course_paths["acc-deepbook-course@contract-hero"].sandbox` (use `@local` in dev work; the canonical plugin key lives in `~/.claude/plugins/installed_plugins.json`).
+The DeepBook sandbox writes its deployment state to `<sandbox-path>/sandbox/deployments/localnet.json`. The reference app's Vite middleware reads the `ACC_PATHS_SANDBOX` env var that ACC injects into the workspace and falls back to `~/workspace/deepbook-sandbox` for standalone runs. (See the lesson description for the override flow if you want the sandbox somewhere else.)
 
 Before we can ask the chain anything, we need to read that file, validate its shape, and produce two things:
 

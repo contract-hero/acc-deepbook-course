@@ -1,7 +1,7 @@
 # Slot 1 — Chain Shape Capture (G-PoolShape Artifact)
 
 **Captured:** 2026-04-27 against the running DeepBook Sandbox.
-**Sandbox manifest:** `~/workspace/deepbook-sandbox/sandbox/deployments/localnet.json`
+**Sandbox manifest:** `<sandbox-path>/sandbox/deployments/localnet.json` (resolved from `ACC_PATHS_SANDBOX` env var at dev-server startup; defaults to `~/workspace/deepbook-sandbox`)
 **DeepBook package:** `0xe7b03bfa906a4c4f2a696ad253f9815a55eafb50f6aa52b121128c8d5cef4329`
 **Sui RPC base URL:** `http://127.0.0.1:9000`
 

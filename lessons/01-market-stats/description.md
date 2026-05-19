@@ -9,18 +9,18 @@
 - Comfortable reading JSON-RPC request/response shapes.
 - *Helpful but not required:* prior exposure to Sui object ownership and shared objects.
 
-**Environment.** This lesson reads from the live DeepBook sandbox. ACC sets all of it up on first run — you don't need to clone or deploy anything by hand.
+**Environment.** This lesson reads from the live DeepBook sandbox. ACC sets it up as preflight remediations on first run — you don't need to clone or deploy anything by hand. On a fresh machine the framework prompts you once for a `workspace_root` (default `~/workspace`) and persists your choice to `~/.acc/config.json`.
 
-What ACC does automatically:
-- Picks a workspace location: the first time you run any ACC lesson it asks where you want your project repos, defaulting to `~/workspace`. The choice is stored in `~/.acc/config.json` as `workspace_root`.
-- Clones [`deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) to `<workspace_root>/deepbook-sandbox` if it's not already there, and runs `pnpm install` in the sandbox subdir.
-- Brings up the stack via `pnpm deploy-all --quick` (Docker must be running) so both endpoints answer:
-  - **`localhost:9000`** — Sui JSON-RPC (every per-pool fetch the lesson writes will hit this).
-  - **`localhost:9009/manifest`** — the sandbox faucet's deployment manifest (the Vite middleware serves it to the browser).
+Cold-path expectation: ~500 MB of Docker images + ~100 MB of git/install content, 5-10 min on broadband. Subsequent starts skip everything that's already there.
 
-The conductor runs all of the above as preflight probes. If `localhost:9009/manifest` is unreachable later, it offers to re-run `pnpm deploy-all --quick`.
+**Trust note.** Auto-bootstrap runs `git clone https://github.com/MystenLabs/deepbook-sandbox` and `pnpm install` inside the cloned repo. Review the upstream before approving the remediation if you don't trust it.
 
-If you already have the sandbox checked out somewhere non-default (or want to relocate it later), edit `~/.acc/config.json`:
+What ACC checks (and remediates if missing):
+- **deepbook-sandbox checkout** — cloned to `<sandbox-path>` (default `${workspace_root}/deepbook-sandbox`) if not already there; `pnpm install` runs inside the sandbox subdir.
+- **`localhost:9000`** — Sui JSON-RPC (every per-pool fetch the lesson writes will hit this).
+- **`localhost:9009/manifest`** — the sandbox faucet's deployment manifest (the Vite middleware serves it to the browser). If unreachable, ACC offers to run `pnpm deploy-all --quick` from `<sandbox-path>/sandbox` (Docker must be running).
+
+To relocate the sandbox to a non-default location (now or later), the plugin key in `course_paths` is whatever appears for this course in `~/.claude/plugins/installed_plugins.json` — `@contract-hero` if you installed from the marketplace, `@local` for dev work. Then edit `~/.acc/config.json`:
 
 ```json
 {
@@ -32,8 +32,6 @@ If you already have the sandbox checked out somewhere non-default (or want to re
   }
 }
 ```
-
-Use `@local` instead of `@contract-hero` if you installed the course from a local marketplace; the exact key lives in `~/.claude/plugins/installed_plugins.json`.
 
 **The deliverable.** When you reach the final section, `pnpm vitest run` in your workspace passes the same 24-test suite the reference implementation passes. The test suite is the equivalence gate — your code doesn't have to look like the reference, it just has to behave like it.
 

@@ -20,7 +20,7 @@
       {
         "id": "sandbox",
         "default": "deepbook-sandbox",
-        "description": "DeepBook sandbox checkout (auto-cloned if missing). Resolved relative to workspace_root in ~/.acc/config.json; override via course_paths[\"acc-deepbook-course@contract-hero\"].sandbox."
+        "description": "DeepBook sandbox checkout (auto-cloned if missing). Override via `course_paths` in `~/.acc/config.json` — see README for the exact plugin key on your install."
       }
     ],
     "probes": [
@@ -82,13 +82,13 @@
         "id": "sandbox-repo-present",
         "kind": "filesystem-exists",
         "message_pass": "deepbook-sandbox checkout found at ${paths.sandbox}.",
-        "message_fail": "deepbook-sandbox not found at ${paths.sandbox}. ACC can clone it on remediation; alternatively set course_paths[\"acc-deepbook-course@contract-hero\"].sandbox in ~/.acc/config.json to point at an existing checkout.",
+        "message_fail": "deepbook-sandbox not found at ${paths.sandbox}. ACC can clone https://github.com/MystenLabs/deepbook-sandbox there on remediation (~500 MB; 5-10 min on broadband). To point at an existing checkout instead, set course_paths in ~/.acc/config.json — see the course README for the exact plugin key.",
         "params": {
           "path": "${paths.sandbox}"
         },
         "remediation": {
           "kind": "shell",
-          "command": "git clone --recurse-submodules https://github.com/MystenLabs/deepbook-sandbox \"${paths.sandbox}\" && cd \"${paths.sandbox}/sandbox\" && pnpm install",
+          "command": "mkdir -p \"$(dirname \"${paths.sandbox}\")\" && { [ -d \"${paths.sandbox}/.git\" ] || git clone --recurse-submodules https://github.com/MystenLabs/deepbook-sandbox \"${paths.sandbox}\"; } && cd \"${paths.sandbox}/sandbox\" && pnpm install",
           "timeout_ms": 600000
         }
       },
@@ -96,7 +96,7 @@
         "id": "sandbox-manifest-reachable",
         "kind": "http-get",
         "message_pass": "Sandbox faucet manifest is reachable on http://localhost:9009/manifest.",
-        "message_fail": "Sandbox faucet manifest is not reachable on http://localhost:9009/manifest. ACC will run `pnpm deploy-all --quick` from ${paths.sandbox}/sandbox on remediation; this requires Docker to be running.",
+        "message_fail": "Sandbox faucet manifest is not reachable on http://localhost:9009/manifest. ACC will run `pnpm deploy-all --quick` from ${paths.sandbox}/sandbox on remediation (requires Docker running, and the sandbox-repo-present probe to have already passed).",
         "params": {
           "url": "http://localhost:9009/manifest",
           "expected_status": 200,

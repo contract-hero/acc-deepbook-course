@@ -47,12 +47,18 @@ All three are on the `contract-hero` marketplace:
 
 ### External setup (auto-bootstrapped by ACC)
 
+> **Trust note.** Auto-bootstrap runs `git clone https://github.com/MystenLabs/deepbook-sandbox` and `pnpm install` inside the cloned repo. The URL is auditable here in the public plugin manifest; review the upstream before approving the remediation if you don't trust it.
+
+> **Framework requirement.** Requires `agentic-community-college@contract-hero` ≥ 0.2.0 (older versions surface a `course-plugin-acc-content-invalid` warning and ignore this plugin's `accContent.paths` block).
+
 ACC handles both the sandbox checkout and the running stack as preflight remediations — you don't have to clone or deploy anything by hand:
 
 - **deepbook-sandbox checkout** — ACC clones [MystenLabs/deepbook-sandbox](https://github.com/MystenLabs/deepbook-sandbox) into `<workspace_root>/deepbook-sandbox` on first lesson start (with `--recurse-submodules` + `pnpm install`). `workspace_root` defaults to `~/workspace`; the first ACC lesson on a fresh machine prompts you for it and persists the choice to `~/.acc/config.json`.
 - **Sandbox faucet running on `http://localhost:9009`** — if the manifest endpoint is unreachable when a lesson starts, ACC offers to run `pnpm deploy-all --quick` from `<sandbox-path>/sandbox/`. Docker must be running.
 
-To point at an existing sandbox checkout outside `<workspace_root>/deepbook-sandbox`, hand-edit `~/.acc/config.json`:
+Cold-path cost: ~500 MB of Docker images + ~100 MB of git/install content. 5-10 min on broadband, longer on cellular. Subsequent starts skip everything that's already there.
+
+To point at an existing sandbox checkout outside `<workspace_root>/deepbook-sandbox`, hand-edit `~/.acc/config.json`. The plugin key in `course_paths` is whatever appears for this course in `~/.claude/plugins/installed_plugins.json` — `acc-deepbook-course@contract-hero` if you installed from this marketplace, `acc-deepbook-course@local` for dev work:
 
 ```json
 {
@@ -65,9 +71,7 @@ To point at an existing sandbox checkout outside `<workspace_root>/deepbook-sand
 }
 ```
 
-Use `@local` instead of `@contract-hero` if you installed the course from a local marketplace. The canonical key is whatever appears for this plugin in `~/.claude/plugins/installed_plugins.json`. A `/acc:settings` CLI for editing this without touching JSON is on the framework's roadmap.
-
-Bandwidth caveat: the cold path pulls ~500 MB of Docker images plus the sandbox checkout — first run will take several minutes and isn't great on cellular.
+A `/acc:settings` CLI for editing this without touching JSON is on the framework's roadmap. Until it ships, hand-edit the file directly, or call the framework's `configureWorkspace` MCP tool from any ACC session.
 
 ## How it plugs in
 
@@ -94,7 +98,7 @@ acc-deepbook-course/
                                   plus its ordered section sequence, tests, and HTML artifact
 ```
 
-The first lesson, `01-market-stats`, is authored by ACC's `lesson-creator` skill against the reference app at `~/workspace/deepbook-sandbox-evaluation-apps/independent/01-market-stats/`.
+The first lesson, `01-market-stats`, was authored by ACC's `lesson-creator` skill against a reference app the maintainer keeps in a private `deepbook-sandbox-evaluation-apps` repo. Authoring-time only — learners don't need to clone it.
 
 ## Authoring a new lesson
 

@@ -5,19 +5,17 @@ import { promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-/**
- * CR-3 fix: A Vite dev-server middleware serves `/localnet.json` directly
- * from `~/workspace/deepbook-sandbox/sandbox/deployments/localnet.json`.
- *
- * Choice documented here (forge-process): the Vite middleware approach was
- * selected over a `public/` symlink because it avoids a manual setup step,
- * works across dev environments without filesystem state, and keeps the build
- * output clean (the manifest is not bundled into `dist/`).
- */
+// Vite middleware serves `/localnet.json` from the deepbook-sandbox checkout.
+// Sandbox location: ACC_PATHS_SANDBOX (injected by ACC at workspace seed),
+// falling back to ~/workspace/deepbook-sandbox for standalone runs. The empty-
+// string check guards against env-var-as-empty-string from a misconfigured caller.
+const sandboxEnv = process.env.ACC_PATHS_SANDBOX;
+const sandboxPath =
+  sandboxEnv && sandboxEnv.length > 0
+    ? sandboxEnv
+    : path.join(homedir(), 'workspace', 'deepbook-sandbox');
 const MANIFEST_DISK_PATH = path.join(
-  homedir(),
-  'workspace',
-  'deepbook-sandbox',
+  sandboxPath,
   'sandbox',
   'deployments',
   'localnet.json',
@@ -37,7 +35,7 @@ const manifestMiddlewarePlugin = {
         res.end(content);
       } catch {
         const msg = JSON.stringify({
-          error: `localnet.json not found at ${MANIFEST_DISK_PATH}. Run pnpm deploy-all from the deepbook-sandbox repo.`,
+          error: `localnet.json not found at ${MANIFEST_DISK_PATH}. Sandbox path resolved from ACC_PATHS_SANDBOX (set by ACC) or the ~/workspace/deepbook-sandbox fallback. Run pnpm deploy-all from the deepbook-sandbox repo's sandbox/ subdir, or relocate via course_paths in ~/.acc/config.json.`,
         });
         res.setHeader('content-type', 'application/json');
         res.statusCode = 404;

@@ -13,7 +13,7 @@ If you're looking at this repo with confusion, the directory may still be named 
 ## What NOT to do here
 
 - Don't add MCP server code, agents, or framework skills. Those live in `agentic-community-college`.
-- Don't add a `commands/` or top-level `agents/` directory; the plugin manifest declares no commands/agents/skills for a reason (it's content-only).
+- Don't add a top-level `agents/` or `skills/` directory; agents and framework skills live in `agentic-community-college`. The `commands/` directory is allowed — `commands/start.md` is the load-bearing entry point that course-engine boots from.
 
 ## Schema reference
 

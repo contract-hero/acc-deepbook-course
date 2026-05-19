@@ -1,6 +1,6 @@
 {
   "name": "acc-deepbook-course",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "DeepBook content for the Agentic Community College (ACC) framework. Bundles a set of hands-on lessons that walk learners through building Sui DeepBook integrations end-to-end.",
   "author": {
     "name": "alilloig"
@@ -16,6 +16,13 @@
   "commands": ["./commands/start.md"],
   "accContent": {
     "lessons": "./lessons/",
+    "paths": [
+      {
+        "id": "sandbox",
+        "default": "deepbook-sandbox",
+        "description": "DeepBook sandbox checkout (auto-cloned if missing). Override via `course_paths` in `~/.acc/config.json` — see README for the exact plugin key on your install."
+      }
+    ],
     "probes": [
       {
         "id": "node-version",
@@ -74,17 +81,22 @@
       {
         "id": "sandbox-repo-present",
         "kind": "filesystem-exists",
-        "message_pass": "deepbook-sandbox checkout found at ~/workspace/deepbook-sandbox.",
-        "message_fail": "Clone https://github.com/MystenLabs/deepbook-sandbox to ~/workspace/deepbook-sandbox/ — the path is load-bearing (the lesson reference apps' vite.config.ts reads from it directly).",
+        "message_pass": "deepbook-sandbox checkout found at ${paths.sandbox}.",
+        "message_fail": "deepbook-sandbox not found at ${paths.sandbox}. ACC can clone https://github.com/MystenLabs/deepbook-sandbox there on remediation (~500 MB; 5-10 min on broadband). To point at an existing checkout instead, set course_paths in ~/.acc/config.json — see the course README for the exact plugin key.",
         "params": {
-          "path": "~/workspace/deepbook-sandbox"
+          "path": "${paths.sandbox}"
+        },
+        "remediation": {
+          "kind": "shell",
+          "command": "mkdir -p \"$(dirname \"${paths.sandbox}\")\" && { [ -d \"${paths.sandbox}/.git\" ] || git clone --recurse-submodules https://github.com/MystenLabs/deepbook-sandbox \"${paths.sandbox}\"; } && cd \"${paths.sandbox}/sandbox\" && pnpm install",
+          "timeout_ms": 600000
         }
       },
       {
         "id": "sandbox-manifest-reachable",
         "kind": "http-get",
         "message_pass": "Sandbox faucet manifest is reachable on http://localhost:9009/manifest.",
-        "message_fail": "Sandbox faucet manifest is not reachable on http://localhost:9009/manifest. Start Docker, then run `pnpm deploy-all` from ~/workspace/deepbook-sandbox/sandbox.",
+        "message_fail": "Sandbox faucet manifest is not reachable on http://localhost:9009/manifest. ACC will run `pnpm deploy-all --quick` from ${paths.sandbox}/sandbox on remediation (requires Docker running, and the sandbox-repo-present probe to have already passed).",
         "params": {
           "url": "http://localhost:9009/manifest",
           "expected_status": 200,
@@ -93,7 +105,7 @@
         "remediation": {
           "kind": "shell",
           "command": "pnpm deploy-all --quick",
-          "cwd": "~/workspace/deepbook-sandbox/sandbox",
+          "cwd": "${paths.sandbox}/sandbox",
           "timeout_ms": 180000
         }
       },

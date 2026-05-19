@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>acc-deepbook-course — build a Sui DeepBook dashboard inside Claude Code</title>
+  <meta name="description" content="A hands-on Sui DeepBook course that runs inside Claude Code. ACC auto-clones the sandbox, brings up the stack, and walks you through building a chain-direct market-stats dashboard — no indexer, no SDK shortcuts.">
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e5e7eb;
+      --accent: #0f4c75;
+      --accent-soft: #e6eef4;
+      --code-bg: #f1f5f9;
+      --warn: #92400e;
+      --warn-soft: #fef3c7;
+      --good: #047857;
+      --good-soft: #d1fae5;
+      --depth-bid: #15803d;
+      --depth-ask: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    header.site {
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header.site .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      flex: none;
+    }
+    nav.site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 15px;
+    }
+    nav.site-nav a:hover { color: var(--accent); }
+
+    section { padding: 56px 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .hero {
+      padding-top: 72px;
+      padding-bottom: 48px;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: clamp(28px, 4.2vw, 42px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0 0 18px 0;
+      max-width: 22ch;
+    }
+    h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .lede {
+      font-size: 19px;
+      color: var(--muted);
+      max-width: 62ch;
+      margin: 0 0 28px 0;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 15px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #0c3d5d; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    h2 {
+      font-size: clamp(22px, 2.4vw, 28px);
+      letter-spacing: -0.015em;
+      margin: 0 0 12px 0;
+    }
+    h2 + p.section-lede {
+      color: var(--muted);
+      margin: 0 0 32px 0;
+      max-width: 60ch;
+    }
+
+    /* Dashboard mockup */
+    figure.mockup {
+      margin: 0 auto;
+      max-width: 720px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    figure.mockup svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    figcaption {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    /* Build list */
+    .build-list {
+      list-style: none;
+      padding: 0;
+      margin: 32px 0 0 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 32px;
+    }
+    .build-list li {
+      padding-left: 24px;
+      position: relative;
+      color: var(--text);
+      font-size: 15px;
+    }
+    .build-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 14px;
+      height: 8px;
+      border-left: 2px solid var(--good);
+      border-bottom: 2px solid var(--good);
+      transform: rotate(-45deg);
+    }
+    .build-list li strong {
+      font-weight: 600;
+    }
+
+    /* Flow diagram */
+    figure.diagram {
+      margin: 0 auto;
+      max-width: 720px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    figure.diagram svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Trust note callout */
+    aside.note {
+      background: var(--warn-soft);
+      border-left: 3px solid var(--warn);
+      color: var(--text);
+      padding: 14px 18px;
+      border-radius: 6px;
+      font-size: 15px;
+      margin: 16px 0 0 0;
+    }
+    aside.note strong { color: var(--warn); }
+    aside.note code, aside.note pre code {
+      background: rgba(146, 64, 14, 0.08);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 16px 0;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    p code, li code {
+      background: var(--code-bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .step .n {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step h3 {
+      margin: 2px 0 4px 0;
+      font-size: 16px;
+    }
+    .step p {
+      margin: 0 0 6px 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* Customize-path section */
+    details {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 15px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    details[open] summary { margin-bottom: 12px; }
+    details p { margin: 0 0 10px 0; color: var(--muted); }
+    details code { font-size: 0.92em; }
+
+    footer.site {
+      border-top: 1px solid var(--border);
+      padding: 28px 0 40px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    footer.site .wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer.site a { color: var(--accent); text-decoration: none; }
+    footer.site a:hover { text-decoration: underline; }
+
+    @media (max-width: 720px) {
+      section { padding: 40px 0; }
+      .hero { padding-top: 48px; }
+      .build-list { grid-template-columns: 1fr; }
+      nav.site-nav a { margin-left: 12px; font-size: 14px; }
+      nav.site-nav a:first-child { margin-left: 0; }
+      .lede { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="#top">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="2" y="2" width="28" height="28" rx="6" fill="#0f4c75"/>
+          <path d="M9 8 H23 M9 14 H19 M9 20 H22" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <circle cx="24" cy="20" r="3" fill="#0f4c75" stroke="#fff" stroke-width="1.6"/>
+        </svg>
+        <span>acc-deepbook-course</span>
+      </a>
+      <nav class="site-nav" aria-label="Page contents">
+        <a href="#build">What you'll build</a>
+        <a href="#flow">How it runs</a>
+        <a href="#start">Quick start</a>
+        <a href="https://github.com/alilloig/acc-deepbook-course">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="wrap">
+        <span class="eyebrow">Sui · DeepBook · Chain-Direct</span>
+        <h1>Build a DeepBook dashboard <em>without</em> the indexer.</h1>
+        <p class="lede">
+          A hands-on Sui course that runs inside Claude Code. ACC clones the DeepBook sandbox,
+          brings up the stack, and walks you section-by-section through reading order-book state
+          straight off the chain — decoding <code>order_id</code> prices, paginating
+          <code>OrderInfo</code> events, and rendering it all into a live React dashboard.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#start">Get started</a>
+          <a class="btn btn-secondary" href="https://github.com/alilloig/acc-deepbook-course">View on GitHub</a>
+          <a class="btn btn-secondary" href="https://github.com/alilloig/agentic-community-college">About ACC</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="build">
+      <div class="wrap">
+        <h2>What you'll build</h2>
+        <p class="section-lede">
+          A React dashboard that shows live market stats for every pool the local sandbox deploys.
+          Per-pool: mid price, bid/ask spread, depth within ±1%, 24h volume, last fill, and a
+          sparkline. The reference implementation passes a 24-test equivalence suite — your
+          version just has to match.
+        </p>
+
+        <figure class="mockup">
+          <svg viewBox="0 0 680 320" role="img" aria-label="Mockup of a DeepBook pool card showing mid price, spread, depth bars, volume, and a price sparkline.">
+            <!-- background card -->
+            <rect x="20" y="20" width="640" height="280" rx="12" fill="#0f172a"/>
+
+            <!-- pool header -->
+            <text x="40" y="60" font-size="18" font-weight="700" font-family="system-ui" fill="#fff">DEEP / SUI</text>
+            <text x="40" y="82" font-size="12" font-family="ui-monospace, monospace" fill="#94a3b8">0xe7b0…cef4329 · localnet</text>
+
+            <text x="500" y="60" font-size="22" font-weight="600" font-family="system-ui" fill="#22c55e" text-anchor="end">$0.04217</text>
+            <text x="500" y="80" font-size="12" font-family="system-ui" fill="#94a3b8" text-anchor="end">mid · +1.2%</text>
+            <text x="640" y="60" font-size="22" font-family="system-ui" fill="#22c55e" text-anchor="end">↑</text>
+
+            <!-- divider -->
+            <line x1="40" y1="100" x2="640" y2="100" stroke="#1e293b" stroke-width="1"/>
+
+            <!-- stats row -->
+            <text x="40" y="130" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">SPREAD</text>
+            <text x="40" y="152" font-size="16" font-weight="600" font-family="ui-monospace, monospace" fill="#e2e8f0">0.18%</text>
+
+            <text x="160" y="130" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">24H VOL</text>
+            <text x="160" y="152" font-size="16" font-weight="600" font-family="ui-monospace, monospace" fill="#e2e8f0">128,400</text>
+
+            <text x="320" y="130" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">DEPTH ±1%</text>
+            <text x="320" y="152" font-size="16" font-weight="600" font-family="ui-monospace, monospace" fill="#e2e8f0">8,920 / 9,140</text>
+
+            <text x="500" y="130" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">LAST FILL</text>
+            <text x="500" y="152" font-size="16" font-weight="600" font-family="ui-monospace, monospace" fill="#e2e8f0">$0.04220</text>
+
+            <!-- depth bars label -->
+            <text x="40" y="190" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">ORDER BOOK</text>
+
+            <!-- bid bars (left, green) -->
+            <rect x="40" y="200" width="120" height="10" rx="2" fill="#15803d" opacity="0.85"/>
+            <rect x="40" y="214" width="98" height="10" rx="2" fill="#15803d" opacity="0.7"/>
+            <rect x="40" y="228" width="72" height="10" rx="2" fill="#15803d" opacity="0.55"/>
+            <rect x="40" y="242" width="56" height="10" rx="2" fill="#15803d" opacity="0.4"/>
+            <text x="40" y="266" font-size="10" font-family="ui-monospace, monospace" fill="#15803d">bids</text>
+
+            <!-- mid line -->
+            <line x1="186" y1="195" x2="186" y2="258" stroke="#475569" stroke-width="1" stroke-dasharray="3 3"/>
+
+            <!-- ask bars (right, red) -->
+            <rect x="212" y="200" width="118" height="10" rx="2" fill="#b91c1c" opacity="0.85"/>
+            <rect x="212" y="214" width="94" height="10" rx="2" fill="#b91c1c" opacity="0.7"/>
+            <rect x="212" y="228" width="68" height="10" rx="2" fill="#b91c1c" opacity="0.55"/>
+            <rect x="212" y="242" width="50" height="10" rx="2" fill="#b91c1c" opacity="0.4"/>
+            <text x="212" y="266" font-size="10" font-family="ui-monospace, monospace" fill="#b91c1c">asks</text>
+
+            <!-- sparkline area on right -->
+            <text x="380" y="190" font-size="11" letter-spacing="1.2" font-family="system-ui" fill="#64748b">PRICE · 5m</text>
+
+            <!-- sparkline gradient -->
+            <defs>
+              <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <polyline points="380,250 405,244 425,248 445,236 470,240 495,228 520,232 545,222 575,226 605,212 640,218"
+                      fill="none" stroke="#22c55e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <polygon points="380,250 405,244 425,248 445,236 470,240 495,228 520,232 545,222 575,226 605,212 640,218 640,266 380,266"
+                     fill="url(#spark)"/>
+          </svg>
+          <figcaption>One card per pool — mid price, spread, depth bars, 24h volume, last fill, and a 5-minute sparkline.</figcaption>
+        </figure>
+
+        <ul class="build-list">
+          <li><strong>Manifest bootstrap.</strong> Parse the sandbox's <code>localnet.json</code> into a typed <code>PoolDescriptor[]</code>; share the validator between Node and browser.</li>
+          <li><strong>RPC foundation.</strong> Talk to Sui JSON-RPC directly — no SDK shortcuts. Build the request shapes from <code>chain-shape.md</code>, not from training memory.</li>
+          <li><strong>Order-book decoding.</strong> Walk a <code>Versioned&lt;PoolInner&gt;</code> wrapping a <code>Book</code> with <code>BigVector&lt;Order&gt;</code> sides; decode <code>order_id</code> into price.</li>
+          <li><strong>Fill aggregation.</strong> Paginate <code>OrderInfo</code> events into 24h volume + last-fill state without an indexer.</li>
+          <li><strong>Market stats.</strong> Derive mid, spread, depth-within-1% from the decoded book; render the sparkline from your event stream.</li>
+          <li><strong>The verification gate.</strong> A 24-test vitest suite the reference passes; your code doesn't have to look like the reference, it just has to behave like it.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="flow">
+      <div class="wrap">
+        <h2>How a lesson runs</h2>
+        <p class="section-lede">
+          ACC handles the setup. You handle the code (or watch — your call). Every section gates
+          on a real test run before advancing.
+        </p>
+        <figure class="diagram">
+          <svg viewBox="0 0 720 360" role="img" aria-label="Lesson flow: start command, preflight probes with auto-bootstrap remediation, conductor-driven section loop, verification gate, HTML artifact output.">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+              </marker>
+            </defs>
+
+            <!-- 1. Start -->
+            <rect x="40" y="18" width="200" height="52" rx="8" fill="#e6eef4" stroke="#0f4c75"/>
+            <text x="140" y="42" font-size="13" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#0f4c75">/acc-deepbook-course:start</text>
+            <text x="140" y="60" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">pick lesson · pick mode</text>
+
+            <line x1="240" y1="44" x2="280" y2="44" stroke="#475569" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+            <!-- 2. Probes / remediation -->
+            <rect x="280" y="18" width="220" height="100" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+            <text x="390" y="38" font-size="13" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#0f172a">Preflight probes</text>
+            <text x="390" y="58" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">node · pnpm · docker · sui</text>
+            <text x="390" y="74" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">sandbox checkout · faucet :9009</text>
+            <line x1="290" y1="84" x2="490" y2="84" stroke="#e5e7eb" stroke-width="1"/>
+            <text x="390" y="100" font-size="11" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#047857">on miss → auto-remediate</text>
+            <text x="390" y="114" font-size="10" text-anchor="middle" font-family="ui-monospace, monospace" fill="#475569">git clone · pnpm install · deploy-all</text>
+
+            <line x1="500" y1="68" x2="540" y2="68" stroke="#475569" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+            <!-- 3. Workspace seed -->
+            <rect x="540" y="18" width="160" height="100" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+            <text x="620" y="42" font-size="12" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#0f172a">Workspace seeded</text>
+            <text x="620" y="62" font-size="10" text-anchor="middle" font-family="ui-monospace, monospace" fill="#475569">~/.acc/workspaces/</text>
+            <text x="620" y="76" font-size="10" text-anchor="middle" font-family="ui-monospace, monospace" fill="#475569">01-market-stats/</text>
+            <text x="620" y="100" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">ACC_PATHS_SANDBOX</text>
+            <text x="620" y="114" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">injected</text>
+
+            <!-- arrow down to section loop -->
+            <line x1="620" y1="120" x2="620" y2="160" stroke="#475569" stroke-width="1.4"/>
+            <line x1="620" y1="160" x2="370" y2="160" stroke="#475569" stroke-width="1.4"/>
+            <line x1="370" y1="160" x2="370" y2="180" stroke="#475569" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+            <!-- 4. Section loop -->
+            <rect x="160" y="184" width="420" height="76" rx="8" fill="#e6eef4" stroke="#0f4c75"/>
+            <text x="370" y="208" font-size="13" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#0f4c75">Conductor walks the section sequence</text>
+            <text x="370" y="228" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">advance HTML artifact · drop TODOs (learning) or implement (explanatory)</text>
+            <text x="370" y="246" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">verifySection runs vitest after each step</text>
+
+            <!-- arrow down to final test -->
+            <line x1="370" y1="262" x2="370" y2="288" stroke="#475569" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+            <!-- 5. Final test + artifact -->
+            <rect x="60" y="292" width="300" height="50" rx="8" fill="#ffffff" stroke="#0f4c75"/>
+            <text x="210" y="316" font-size="13" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#0f172a">Final gate: 24/24 vitest tests</text>
+            <text x="210" y="332" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">equivalence to reference impl</text>
+
+            <line x1="360" y1="316" x2="400" y2="316" stroke="#475569" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+            <rect x="400" y="292" width="280" height="50" rx="8" fill="#d1fae5" stroke="#047857"/>
+            <text x="540" y="316" font-size="13" font-weight="600" text-anchor="middle" font-family="system-ui" fill="#047857">HTML artifact + live dashboard</text>
+            <text x="540" y="332" font-size="11" text-anchor="middle" font-family="system-ui" fill="#475569">publishable via toolkit</text>
+          </svg>
+          <figcaption>One run: pick → ACC sets up → walk the sections → ship a tested dashboard.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="wrap">
+        <h2>Quick start</h2>
+        <p class="section-lede">
+          Three commands. The auto-bootstrap takes ~5-10 min on first run while it pulls Docker
+          images and brings the sandbox up; after that, lesson start is instant.
+        </p>
+
+        <div class="step">
+          <div class="n">1</div>
+          <div>
+            <h3>Install the framework + this course</h3>
+            <p>From any Claude Code session. The course requires <code>agentic-community-college</code> ≥ <code>0.2.0</code>.</p>
+            <pre><code>/plugin marketplace add contract-hero/plugin-marketplace
+/plugin install agentic-community-college@contract-hero
+/plugin install acc-deepbook-course@contract-hero</code></pre>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="n">2</div>
+          <div>
+            <h3>Make sure Docker is running</h3>
+            <p>ACC will run <code>pnpm deploy-all --quick</code> against your local Docker. Without it,
+              the sandbox-faucet probe blocks at preflight.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="n">3</div>
+          <div>
+            <h3>Start the lesson</h3>
+            <p>ACC prompts for a workspace location on first run (default <code>~/workspace</code>),
+              auto-clones the sandbox, runs <code>pnpm install</code>, and brings up the stack — all
+              as preflight remediations.</p>
+            <pre><code>/acc-deepbook-course:start</code></pre>
+          </div>
+        </div>
+
+        <aside class="note">
+          <strong>Trust note.</strong> Auto-bootstrap runs <code>git clone https://github.com/MystenLabs/deepbook-sandbox</code>
+          and <code>pnpm install</code> inside the cloned repo's <code>sandbox/</code> subdir. The URL is
+          auditable here in the public plugin manifest; review the upstream before approving the
+          remediation if you don't trust it. Cold path is ~500 MB Docker images + ~100 MB git/install,
+          so first run isn't great on cellular.
+        </aside>
+
+        <details>
+          <summary>Want the sandbox somewhere other than <code>~/workspace/deepbook-sandbox</code>?</summary>
+          <p>Hand-edit <code>~/.acc/config.json</code>. The plugin key in <code>course_paths</code> is
+            whatever appears for this course in <code>~/.claude/plugins/installed_plugins.json</code> —
+            <code>@contract-hero</code> if you installed from the marketplace, <code>@local</code> for
+            dev work.</p>
+          <pre><code>{
+  "workspace_root": "~/workspace",
+  "course_paths": {
+    "acc-deepbook-course@contract-hero": {
+      "sandbox": "~/wherever/deepbook-sandbox"
+    }
+  }
+}</code></pre>
+          <p>A <code>/acc:settings</code> CLI for editing this without touching JSON is on ACC's
+            roadmap. Until then, hand-edit, or call <code>configureWorkspace</code> from any ACC
+            session.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      <div>
+        acc-deepbook-course &middot; course content for the <a href="https://github.com/alilloig/agentic-community-college">ACC</a> framework
+      </div>
+      <div>
+        <a href="https://github.com/alilloig/acc-deepbook-course">Source</a> &middot;
+        <a href="https://github.com/contract-hero/plugin-marketplace">Marketplace</a> &middot;
+        <a href="https://github.com/MystenLabs/deepbook-sandbox">Sandbox</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

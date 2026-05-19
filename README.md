@@ -45,12 +45,29 @@ All three are on the `contract-hero` marketplace:
 | Docker | running | Spinning up the local DeepBook sandbox. |
 | Sui CLI | any current | Sandbox bring-up scripts use it directly. |
 
-### External setup (manual)
+### External setup (auto-bootstrapped by ACC)
 
-ACC's probes check for these but cannot install them:
+ACC handles both the sandbox checkout and the running stack as preflight remediations — you don't have to clone or deploy anything by hand:
 
-- **deepbook-sandbox checkout at `~/workspace/deepbook-sandbox/`** — clone [MystenLabs/deepbook-sandbox](https://github.com/MystenLabs/deepbook-sandbox) to that exact path. The lesson reference apps' `vite.config.ts` reads from it directly, so the path is load-bearing.
-- **Sandbox faucet running on `http://localhost:9009`** — from the sandbox checkout, run `pnpm deploy-all` inside `~/workspace/deepbook-sandbox/sandbox/`. ACC will offer to run `pnpm deploy-all --quick` as a remediation if the faucet isn't reachable when a lesson starts.
+- **deepbook-sandbox checkout** — ACC clones [MystenLabs/deepbook-sandbox](https://github.com/MystenLabs/deepbook-sandbox) into `<workspace_root>/deepbook-sandbox` on first lesson start (with `--recurse-submodules` + `pnpm install`). `workspace_root` defaults to `~/workspace`; the first ACC lesson on a fresh machine prompts you for it and persists the choice to `~/.acc/config.json`.
+- **Sandbox faucet running on `http://localhost:9009`** — if the manifest endpoint is unreachable when a lesson starts, ACC offers to run `pnpm deploy-all --quick` from `<sandbox-path>/sandbox/`. Docker must be running.
+
+To point at an existing sandbox checkout outside `<workspace_root>/deepbook-sandbox`, hand-edit `~/.acc/config.json`:
+
+```json
+{
+  "workspace_root": "~/workspace",
+  "course_paths": {
+    "acc-deepbook-course@contract-hero": {
+      "sandbox": "~/wherever/deepbook-sandbox"
+    }
+  }
+}
+```
+
+Use `@local` instead of `@contract-hero` if you installed the course from a local marketplace. The canonical key is whatever appears for this plugin in `~/.claude/plugins/installed_plugins.json`. A `/acc:settings` CLI for editing this without touching JSON is on the framework's roadmap.
+
+Bandwidth caveat: the cold path pulls ~500 MB of Docker images plus the sandbox checkout — first run will take several minutes and isn't great on cellular.
 
 ## How it plugs in
 

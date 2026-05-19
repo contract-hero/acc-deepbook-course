@@ -47,7 +47,7 @@ All three are on the `contract-hero` marketplace:
 
 ### External setup (auto-bootstrapped by ACC)
 
-> **Trust note.** Auto-bootstrap runs `git clone https://github.com/MystenLabs/deepbook-sandbox` and `pnpm install` inside the cloned repo. The URL is auditable here in the public plugin manifest; review the upstream before approving the remediation if you don't trust it.
+> **Trust note.** Auto-bootstrap runs `git clone https://github.com/MystenLabs/deepbook-sandbox` and `pnpm install` inside the cloned repo's `sandbox/` subdir. The URL is auditable here in the public plugin manifest; review the upstream before approving the remediation if you don't trust it.
 
 > **Framework requirement.** Requires `agentic-community-college@contract-hero` ≥ 0.2.0 (older versions surface a `course-plugin-acc-content-invalid` warning and ignore this plugin's `accContent.paths` block).
 

@@ -5,19 +5,15 @@ import { promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-/**
- * CR-3 fix: A Vite dev-server middleware serves `/localnet.json` directly
- * from `~/workspace/deepbook-sandbox/sandbox/deployments/localnet.json`.
- *
- * Choice documented here (forge-process): the Vite middleware approach was
- * selected over a `public/` symlink because it avoids a manual setup step,
- * works across dev environments without filesystem state, and keeps the build
- * output clean (the manifest is not bundled into `dist/`).
- */
+// The Vite dev-server middleware serves `/localnet.json` from the
+// deepbook-sandbox checkout. The location is resolved as:
+//   1. ACC_PATHS_SANDBOX (injected by the ACC framework at workspace seed)
+//   2. ~/workspace/deepbook-sandbox (legacy fallback for standalone dev)
+const sandboxPath =
+  process.env.ACC_PATHS_SANDBOX ??
+  path.join(homedir(), 'workspace', 'deepbook-sandbox');
 const MANIFEST_DISK_PATH = path.join(
-  homedir(),
-  'workspace',
-  'deepbook-sandbox',
+  sandboxPath,
   'sandbox',
   'deployments',
   'localnet.json',

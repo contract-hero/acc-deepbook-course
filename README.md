@@ -2,7 +2,7 @@
 
 > A hands-on Sui DeepBook course that runs inside Claude Code. ACC clones the sandbox, brings up the stack, and walks you through building a chain-direct dashboard.
 
-**👉 [Read the 2-minute overview](https://alilloig.github.io/acc-deepbook-course/)**
+**👉 [Read the 2-minute overview](https://contract-hero.github.io/acc-deepbook-course/)**
 
 ## Install
 
@@ -21,7 +21,7 @@ Requires `agentic-community-college@contract-hero` ≥ `0.2.0` and Docker runnin
 
 ## Links
 
-- **Landing page** — <https://alilloig.github.io/acc-deepbook-course/>
+- **Landing page** — <https://contract-hero.github.io/acc-deepbook-course/>
 - **Framework** — [`agentic-community-college`](https://github.com/contract-hero/agentic-community-college)
 - **Marketplace** — [`contract-hero/plugin-marketplace`](https://github.com/contract-hero/plugin-marketplace)
 - **Reference sandbox** — [`MystenLabs/deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) (auto-cloned by ACC; you don't have to)

@@ -16,7 +16,7 @@ Cold-path expectation: ~500 MB of Docker images + ~100 MB of git/install content
 **Trust note.** Auto-bootstrap runs `git clone https://github.com/MystenLabs/deepbook-sandbox` and `pnpm install` inside the cloned repo. Review the upstream before approving the remediation if you don't trust it.
 
 What ACC checks (and remediates if missing):
-- **deepbook-sandbox checkout** — cloned to `<sandbox-path>` (default `${workspace_root}/deepbook-sandbox`) if not already there; `pnpm install` runs inside the sandbox subdir.
+- **deepbook-sandbox checkout** — cloned to `<sandbox-path>` (default `<workspace_root>/deepbook-sandbox`) if not already there; `pnpm install` runs inside the sandbox subdir.
 - **`localhost:9000`** — Sui JSON-RPC (every per-pool fetch the lesson writes will hit this).
 - **`localhost:9009/manifest`** — the sandbox faucet's deployment manifest (the Vite middleware serves it to the browser). If unreachable, ACC offers to run `pnpm deploy-all --quick` from `<sandbox-path>/sandbox` (Docker must be running).
 

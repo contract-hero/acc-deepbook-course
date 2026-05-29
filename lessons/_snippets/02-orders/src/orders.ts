@@ -19,6 +19,19 @@ import { signAndExecute, type SandboxConfigWithBM } from './sandbox.js';
 
 const TICK = 0.000001; // DEEP_SUI tick size: 0.000001 SUI per DEEP
 
+/** Retry a simulate-based read (e.g. midPrice). The sandbox gRPC SimulateTransaction
+ *  endpoint occasionally returns without commandResults, surfacing as
+ *  "Cannot read properties of undefined (reading 'returnValues')". A few retries
+ *  with a short backoff smooth over node-warmup / block-boundary blips. */
+async function withRetry<T>(fn: () => Promise<T>, retries = 15, delayMs = 1000): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < retries; i++) {
+    try { return await fn(); }
+    catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, delayMs)); }
+  }
+  throw lastErr;
+}
+
 // ---------------------------------------------------------------------------
 // Public interface types
 // ---------------------------------------------------------------------------
@@ -60,7 +73,7 @@ export async function placeRestingBid(
     await signAndExecute(client, keypair, depositTx);
 
     // Step 2: query mid price and compute a bid far enough below to rest
-    const mid = await client.deepbook.midPrice(a.poolKey);
+    const mid = await withRetry(() => client.deepbook.midPrice(a.poolKey));
     const bidPrice = Math.floor((mid * 0.5) / TICK) * TICK;
 
     // Step 3: place the limit bid

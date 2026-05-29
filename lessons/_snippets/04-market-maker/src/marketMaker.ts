@@ -4,6 +4,19 @@ import { signAndExecute, type SandboxConfigWithBM } from './sandbox.js';
 
 // DEEP_SUI tick size is 0.000001 (6 decimal places).
 const TICK = 0.000001;
+
+/** Retry a simulate-based read (e.g. midPrice). The sandbox gRPC SimulateTransaction
+ *  endpoint occasionally returns without commandResults, surfacing as
+ *  "Cannot read properties of undefined (reading 'returnValues')". A few retries
+ *  with a short backoff smooth over node-warmup / block-boundary blips. */
+async function withRetry<T>(fn: () => Promise<T>, retries = 15, delayMs = 1000): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < retries; i++) {
+    try { return await fn(); }
+    catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, delayMs)); }
+  }
+  throw lastErr;
+}
 const round = (p: number) => Math.floor(p / TICK) * TICK;
 
 export interface GridArgs {
@@ -40,7 +53,7 @@ export async function quoteTwoSidedGrid(
   client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'DEEP', a.depositDeep)(dep);
   await signAndExecute(client, keypair, dep);
 
-  const mid = await client.deepbook.midPrice(a.poolKey);
+  const mid = await withRetry(() => client.deepbook.midPrice(a.poolKey));
 
   const tx = new Transaction();
   // clientOrderId is per-call sequential; cancel all orders before re-quoting to avoid ID collisions.

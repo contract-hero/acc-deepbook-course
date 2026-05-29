@@ -22,7 +22,7 @@ describe('03-flash-loan (live sandbox)', () => {
     // Depositing via a BalanceManager raises vault.base_balance, which is exactly
     // what borrow_flashloan_base checks. Production pools already hold deep
     // liquidity so real flash-loan integrations don't need this step.
-    await seedPoolBaseLiquidity(ctx, 'DEEP_SUI', 5);
+    await seedPoolBaseLiquidity(ctx, 5);
   });
 
   it('borrows DEEP, executes the arb step, repays in one PTB', async () => {

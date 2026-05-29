@@ -91,10 +91,12 @@ export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<s
  * `borrow_flashloan_base` checks (`assert!(self.base_balance.value() >= borrow_quantity)`).
  * After this call the borrow in `runFlashLoanArb` will reliably succeed regardless of
  * whatever the market maker has done to the vault balance.
+ *
+ * Note: a BalanceManager DEEP deposit is not pool-scoped, so no `poolKey` parameter
+ * is needed here.
  */
 export async function seedPoolBaseLiquidity(
   ctx: SandboxConfigWithBM,
-  poolKey: 'DEEP_SUI',
   deepAmount: number,
 ): Promise<string> {
   const tx = new Transaction();

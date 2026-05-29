@@ -25,6 +25,7 @@ const manifestMiddleware = {
 
 export default defineConfig({
   plugins: [react(), manifestMiddleware],
+  // proxy applies to `pnpm dev` only; vitest (node env) bypasses the dev server
   server: { proxy: { '/faucet': 'http://127.0.0.1:9009' } },
   test: { environment: 'node', globals: true, include: ['tests/**/*.{test,spec}.ts'], testTimeout: 120_000, hookTimeout: 120_000 },
 });

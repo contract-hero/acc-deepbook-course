@@ -109,3 +109,46 @@ fun execute_base_aborts_on_short_repay() {
 
     end(test);
 }
+
+// T-003: over-repayment must abort at the VAULT's exact-equality guard, not the
+// module's `ERepayShort`. We borrow `amount` and mint a top-up of `amount`
+// (merged coin holds 2*amount), then demand `amount + 1` be repaid. The
+// `ERepayShort` guard passes (2*amount >= amount + 1) and the split succeeds,
+// but `return_flashloan_base` asserts `coin.value() == flash_loan.borrow_quantity`
+// — amount + 1 != amount — so the vault aborts with EIncorrectQuantityReturned.
+// EIncorrectQuantityReturned is a private const in deepbook::vault (value 6), so
+// we match it by code + location rather than by name.
+#[test, expected_failure(abort_code = 6, location = deepbook::vault)]
+fun execute_base_aborts_on_over_repay_at_vault() {
+    let mut test = begin(OWNER);
+    let pool_id = setup_everything<SUI, USDC, SUI, DEEP>(&mut test);
+
+    test.next_tx(TRADER);
+    {
+        let mut pool = test.take_shared_by_id<Pool<SUI, USDC>>(pool_id);
+
+        let amount = borrow_amount();
+        let (borrowed, loan) = pool::borrow_flashloan_base<SUI, USDC>(
+            &mut pool,
+            amount,
+            test.ctx(),
+        );
+        // Top up with exactly the principal: merged coin holds 2*amount, so the
+        // ERepayShort guard passes and the split off `amount + 1` succeeds.
+        let topup = mint_for_testing<SUI>(amount, test.ctx());
+
+        // Repay amount + 1: != borrowed principal → vault's exact-equality guard.
+        arb_executor::execute_base<SUI, USDC>(
+            &mut pool,
+            borrowed,
+            loan,
+            topup,
+            amount + 1,
+            test.ctx(),
+        );
+
+        return_shared(pool);
+    };
+
+    end(test);
+}

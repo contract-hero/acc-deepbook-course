@@ -38,14 +38,21 @@ describe('03-flash-loan (live sandbox)', () => {
     // Pre-seed ensures the borrow succeeds; the revert comes from ERepayShort
     // (the repay guard inside execute_base), not from ENotEnoughBaseForLoan at
     // the borrow step — otherwise the test would pass for the wrong reason.
-    await expect(
-      runFlashLoanArb(ctx, {
-        poolKey: 'DEEP_SUI',
-        borrow: 0.5,
-        arbExecutorPackageId: pkg,
-        topup: 0,
-        overrideBorrowAmount: 1, // demand 1 DEEP repay on a 0.5 borrow → ERepayShort
-      }),
-    ).rejects.toThrow();
+    const err = await runFlashLoanArb(ctx, {
+      poolKey: 'DEEP_SUI',
+      borrow: 0.5,
+      arbExecutorPackageId: pkg,
+      topup: 0,
+      overrideBorrowAmount: 1, // demand 1 DEEP repay on a 0.5 borrow → ERepayShort
+    }).then(() => null).catch((e) => e as Error);
+    const msg = String(err?.message ?? err);
+    // The reverted tx's message carries the aborting module + code, e.g.:
+    //   "MoveAbort in 3rd command, abort code: 1, in '0x..::arb_executor::execute_base'"
+    // We assert the abort fired inside OUR module's repay guard (ERepayShort),
+    // not at the deepbook borrow step (ENotEnoughBaseForLoan, same code 1) — so a
+    // liquidity shortfall can't make this negative test pass for the wrong reason.
+    expect(err).not.toBeNull();
+    expect(msg).toMatch(/arb_executor::execute_base/); // reverted inside execute_base (ERepayShort)…
+    expect(msg).not.toMatch(/borrow_flashloan|ENotEnoughBaseForLoan/); // …not at the borrow step
   });
 });

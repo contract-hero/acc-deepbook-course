@@ -38,7 +38,7 @@ if [[ -z "$CHAIN_ID" ]]; then
     exit 1
 fi
 
-trap 'rm -rf "$TARGET_DIR"' ERR
+trap 'rm -rf "$TARGET_DIR"' ERR EXIT
 
 echo "==> Staging arb_executor inside $TARGET_DIR"
 rm -rf "$TARGET_DIR"
@@ -77,6 +77,11 @@ if (!pkg) { console.error('no published object found'); process.exit(1); }
 console.log(pkg.packageId);
 " "$SNIPPET_DIR/publish.json"
 )
+
+if [[ -z "$PACKAGE_ID" || "$PACKAGE_ID" == "undefined" ]]; then
+    echo "ERROR: packageId could not be parsed from publish.json" >&2
+    exit 1
+fi
 
 echo "==> Package published: $PACKAGE_ID"
 

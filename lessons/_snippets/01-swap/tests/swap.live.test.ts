@@ -24,8 +24,13 @@ describe('01-swap (live sandbox)', () => {
   }, 60_000); // generous timeout for warmup retries
 
   it('reverts when minOut is unsatisfiable', async () => {
-    await expect(
-      swapQuoteForBase(ctx, { poolKey: 'DEEP_SUI', amount: 0.1, minOut: 1_000_000 }),
-    ).rejects.toThrow();
+    const err = await swapQuoteForBase(ctx, { poolKey: 'DEEP_SUI', amount: 0.1, minOut: 1_000_000 })
+      .then(() => null).catch((e) => e as Error);
+    // The reverted tx's message carries the aborting module + code, e.g.:
+    //   "MoveAbort in 3rd command, abort code: 12, in '0x..::pool::swap_exact_quantity'"
+    // Code 12 is deepbook::pool::EMinimumQuantityOutNotMet — the slippage guard —
+    // so we assert the revert is the min-out check, not just any throw.
+    expect(err).not.toBeNull();
+    expect(String(err?.message ?? err)).toMatch(/abort code: 12|EMinimumQuantityOutNotMet/);
   });
 });

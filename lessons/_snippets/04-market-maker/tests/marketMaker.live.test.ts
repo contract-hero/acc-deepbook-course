@@ -21,5 +21,10 @@ describe('04-market-maker (live sandbox)', () => {
   it('stakes DEEP for fee rebates', async () => {
     const digest = await stakeDeep(ctx, { poolKey: 'DEEP_SUI', amount: 10, depositDeep: 50 });
     expect(digest).toMatch(/^[A-Za-z0-9]+$/);
+    // Confirm the stake actually landed: account() reports the BM's stake split
+    // across active_stake (effective next epoch) and inactive_stake (this epoch,
+    // where a fresh stake lands). Sum both so the assertion is epoch-agnostic.
+    const info = await ctx.client.deepbook.account('DEEP_SUI', ctx.balanceManagerKey);
+    expect(info.active_stake + info.inactive_stake).toBeGreaterThan(0);
   });
 });

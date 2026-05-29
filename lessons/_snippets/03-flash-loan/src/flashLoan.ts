@@ -1,5 +1,5 @@
 import { Transaction, coinWithBalance } from '@mysten/sui/transactions';
-import { signAndExecute, type SandboxConfig } from './sandbox.js';
+import { signAndExecute, type SandboxConfig, type SandboxConfigWithBM } from './sandbox.js';
 
 // DEEP uses a 1e6 scalar on-chain. The deepbook SDK's `borrowBaseAsset` takes a
 // HUMAN amount and scales it internally, but the on-chain `borrow_quantity` it
@@ -78,4 +78,26 @@ export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<s
 
   const res = await signAndExecute(client, keypair, tx);
   return res.digest;
+}
+
+/**
+ * Pre-seed the pool's lendable base liquidity by depositing DEEP via a BalanceManager.
+ *
+ * Sandbox-determinism helper: the shared DEEP_SUI vault's lendable DEEP fluctuates with
+ * the live market maker; a production pool already holds deep liquidity, so real
+ * integrations skip this step entirely.
+ *
+ * Depositing raises `base_balance` in the vault, which is exactly the value that
+ * `borrow_flashloan_base` checks (`assert!(self.base_balance.value() >= borrow_quantity)`).
+ * After this call the borrow in `runFlashLoanArb` will reliably succeed regardless of
+ * whatever the market maker has done to the vault balance.
+ */
+export async function seedPoolBaseLiquidity(
+  ctx: SandboxConfigWithBM,
+  poolKey: 'DEEP_SUI',
+  deepAmount: number,
+): Promise<string> {
+  const tx = new Transaction();
+  ctx.client.deepbook.balanceManager.depositIntoManager(ctx.balanceManagerKey, 'DEEP', deepAmount)(tx);
+  return (await signAndExecute(ctx.client, ctx.keypair, tx)).digest;
 }

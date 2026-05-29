@@ -156,3 +156,23 @@ The manifest path is overridable with `DEEPBOOK_SANDBOX_DEPLOYMENTS`:
 ```bash
 export DEEPBOOK_SANDBOX_DEPLOYMENTS=$HOME/workspace/deepbook-sandbox/sandbox/deployments/localnet.json
 ```
+
+### Live-test determinism: pre-seeding the pool vault
+
+The sandbox's shared DEEP_SUI pool is serviced by a market maker that continuously
+deposits and withdraws base liquidity. When the market maker drains the vault,
+`borrow_flashloan_base` aborts with `ENotEnoughBaseForLoan`
+(`assert!(self.base_balance.value() >= borrow_quantity)`), making the happy-path
+test intermittently fail.
+
+The live test works around this by calling `seedPoolBaseLiquidity` (exported from
+`src/flashLoan.ts`) immediately before each borrow. That helper deposits 5 DEEP
+into the pool vault via a BalanceManager, raising `base_balance` well above the
+0.5 DEEP borrow amount used in both tests. The borrow then always succeeds, and the
+negative test reverts for the right reason (`ERepayShort` inside `execute_base`)
+rather than at the borrow step.
+
+This is purely a sandbox-determinism measure. **Real (mainnet/testnet) flash-loan
+integrations do not need this step** — production DEEP_SUI pools already hold
+substantial base liquidity, so the pool vault is never the bottleneck for a small
+flash loan.

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+*.tsbuildinfo
 publish.json
 create_*.json
 *.log

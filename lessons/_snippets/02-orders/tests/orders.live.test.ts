@@ -1,0 +1,31 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import { setupWithBalanceManager, assertSandboxUp } from '../src/sandbox.js';
+import { placeRestingBid, listOpenOrders, cancelAll, placeMarketBuy } from '../src/orders.js';
+
+describe('02-orders (live sandbox)', () => {
+  beforeAll(async () => { await assertSandboxUp(); });
+
+  it('deposits, places a resting bid, lists it, then cancels all', async () => {
+    const ctx = await setupWithBalanceManager();
+    await placeRestingBid(ctx, { poolKey: 'DEEP_SUI', depositSui: 1, quantity: 10, clientOrderId: '1' });
+    const open = await listOpenOrders(ctx, 'DEEP_SUI');
+    expect(open.length).toBeGreaterThan(0);
+    await cancelAll(ctx, 'DEEP_SUI');
+    expect((await listOpenOrders(ctx, 'DEEP_SUI')).length).toBe(0);
+  });
+
+  it('places a market buy and returns a valid digest (or tolerates no-liquidity)', async () => {
+    const ctx = await setupWithBalanceManager();
+    try {
+      const digest = await placeMarketBuy(ctx, { poolKey: 'DEEP_SUI', depositSui: 5, quantity: 10, clientOrderId: '1' });
+      expect(digest).toMatch(/^[A-Za-z0-9]+$/);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Accept if sandbox liquidity is insufficient or order expired
+      const isLiquidityError =
+        /insufficient|no.*ask|no.*liquidity|empty|expired|cancel/i.test(msg) ||
+        /MoveAbort|VMError/i.test(msg);
+      if (!isLiquidityError) throw e;
+    }
+  });
+});

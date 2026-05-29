@@ -18,7 +18,7 @@ export interface GridArgs {
 
 /**
  * Deposit inventory into the BalanceManager, then place `levels` POST_ONLY
- * bids and `levels` POST_ONLY asks geometrically spaced around mid price.
+ * bids and `levels` POST_ONLY asks arithmetically spaced around mid price.
  *
  * Each level i is offset by (spreadBps/10_000 * i) from mid, so level 1 is
  * closest to mid and level N is furthest. All orders use POST_ONLY to ensure
@@ -43,6 +43,7 @@ export async function quoteTwoSidedGrid(
   const mid = await client.deepbook.midPrice(a.poolKey);
 
   const tx = new Transaction();
+  // clientOrderId is per-call sequential; cancel all orders before re-quoting to avoid ID collisions.
   let oid = 0;
   for (let i = 1; i <= a.levels; i++) {
     const off = (a.spreadBps / 10_000) * i;
@@ -97,7 +98,7 @@ export async function stakeDeep(
 export async function listOpenOrders(
   ctx: SandboxConfigWithBM,
   poolKey: 'DEEP_SUI',
-) {
+): Promise<string[]> {
   return ctx.client.deepbook.accountOpenOrders(poolKey, ctx.balanceManagerKey);
 }
 
@@ -105,7 +106,7 @@ export async function listOpenOrders(
 export async function cancelAll(
   ctx: SandboxConfigWithBM,
   poolKey: 'DEEP_SUI',
-) {
+): Promise<string> {
   const tx = new Transaction();
   ctx.client.deepbook.deepBook.cancelAllOrders(poolKey, ctx.balanceManagerKey)(tx);
   return (await signAndExecute(ctx.client, ctx.keypair, tx)).digest;

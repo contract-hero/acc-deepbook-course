@@ -62,7 +62,7 @@ export function App() {
     await run('Cancelling all orders', async () => {
       const digest = await cancelAll(ctx, 'DEEP_SUI');
       log(`All orders cancelled — digest: ${digest}`);
-      setOpenOrderCount(0);
+      setOpenOrderCount(0); // optimistic: cancelAllOrders is atomic
     });
   }
 

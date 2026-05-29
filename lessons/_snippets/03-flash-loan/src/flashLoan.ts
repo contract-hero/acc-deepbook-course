@@ -1,0 +1,65 @@
+import { Transaction, coinWithBalance } from '@mysten/sui/transactions';
+import { signAndExecute, type SandboxConfig } from './sandbox.js';
+
+// DEEP uses a 1e6 scalar on-chain. The deepbook SDK's `borrowBaseAsset` takes a
+// HUMAN amount and scales it internally, but the on-chain `borrow_quantity` it
+// records — which our Move module must repay EXACTLY — is the scaled u64. So the
+// `borrow_amount` we hand to `execute_base` is the same human amount scaled here.
+const DEEP_SCALAR = 1_000_000;
+
+export interface ArbArgs {
+  poolKey: 'DEEP_SUI';
+  /** Human DEEP amount to borrow (and repay exactly). */
+  borrow: number;
+  /** Published arb_executor package id (from deployment.json). */
+  arbExecutorPackageId: string;
+  /**
+   * Human DEEP amount to top up with. Defaults to `borrow` so the merged coin
+   * covers the principal exactly. Set to 0 to force a short-repay revert.
+   */
+  topup?: number;
+}
+
+/**
+ * Pattern E — atomic flash loan via DeepBook's hot-potato, settled in one PTB.
+ *
+ * The PTB:
+ *   1. `borrowBaseAsset` borrows `borrow` DEEP from the DEEP_SUI pool and hands
+ *      back `[coin, flashLoan]` — the borrowed coin plus the `FlashLoan` hot
+ *      potato (a value with no abilities that MUST be consumed this tx).
+ *   2. We mint a `topup` coin from the wallet (the stand-in for arb profit).
+ *   3. `arb_executor::execute_base` merges topup+borrowed, splits off exactly
+ *      the principal, repays via `pool::return_flashloan_base` (which consumes
+ *      the potato), and transfers the remainder back to us.
+ *
+ * If the merged coin can't cover the principal, the Move module aborts
+ * (`ERepayShort`), so the whole PTB reverts — the pool's liquidity is never at
+ * risk. Over-repaying also reverts (the vault asserts exact-principal return).
+ */
+export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<string> {
+  const { client, keypair, manifest } = ctx;
+
+  const deepType = manifest.pools.DEEP_SUI.baseCoinType;
+  const suiType = '0x2::sui::SUI';
+  const poolId = manifest.pools.DEEP_SUI.poolId;
+
+  const borrowScaled = Math.round(a.borrow * DEEP_SCALAR);
+  const topupScaled = Math.round((a.topup ?? a.borrow) * DEEP_SCALAR);
+
+  const tx = new Transaction();
+
+  // borrowBaseAsset is a thunk: it returns the [coin, flashLoan] NestedResults.
+  const [coin, flashLoan] = tx.add(client.deepbook.flashLoans.borrowBaseAsset(a.poolKey, a.borrow));
+
+  // The top-up coin (DEEP) merged in to guarantee exact-principal repayment.
+  const topup = coinWithBalance({ type: deepType, balance: BigInt(topupScaled) });
+
+  tx.moveCall({
+    target: `${a.arbExecutorPackageId}::arb_executor::execute_base`,
+    typeArguments: [deepType, suiType],
+    arguments: [tx.object(poolId), coin, flashLoan, topup, tx.pure.u64(borrowScaled)],
+  });
+
+  const res = await signAndExecute(client, keypair, tx);
+  return res.digest;
+}

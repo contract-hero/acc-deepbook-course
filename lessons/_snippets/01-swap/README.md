@@ -68,3 +68,5 @@ pnpm build    # typecheck + production build
 
 The manifest path can be overridden with the `DEEPBOOK_SANDBOX_DEPLOYMENTS`
 environment variable.
+
+> **Note:** The live test retries the swap (up to 10×, 1.5 s apart) to ride out a momentarily-empty ask book on a freshly-deployed sandbox; standing liquidity in production pools makes this unnecessary in real usage.

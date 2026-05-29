@@ -38,6 +38,8 @@ if [[ -z "$CHAIN_ID" ]]; then
     exit 1
 fi
 
+trap 'rm -rf "$TARGET_DIR"' ERR
+
 echo "==> Staging arb_executor inside $TARGET_DIR"
 rm -rf "$TARGET_DIR"
 mkdir -p "$TARGET_DIR/sources"

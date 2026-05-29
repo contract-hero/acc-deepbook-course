@@ -73,8 +73,15 @@ tx.moveCall({
 ```
 
 The borrow thunk and the `execute_base` call live in **one PTB**, so the borrow
-and the repay are atomic. Pass `topup: 0` and the merged coin can't cover the
-principal → `ERepayShort` → the whole PTB reverts and the loan never settled.
+and the repay are atomic. Pass `overrideBorrowAmount: 2` with `borrow: 1` and `topup: 0` to demand
+repayment of 2 DEEP when only 1 DEEP was borrowed. The merged coin is 1 DEEP — less
+than the demanded 2 — so `execute_base`'s `assert!(topup.value() >= borrow_amount)`
+fires (`ERepayShort`) → the whole PTB reverts and the loan never settled.
+
+> Note: passing `topup: 0` alone is NOT sufficient to force a revert. The borrowed
+> coin itself equals the principal, so `topup.join(borrowed)` already covers
+> `borrow_amount` and repayment succeeds. `overrideBorrowAmount` is needed to demand
+> more than was borrowed.
 
 > **Scaling.** DEEP uses a `1e6` on-chain scalar. The SDK's `borrowBaseAsset`
 > takes a *human* amount and scales it internally, but the on-chain

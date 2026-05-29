@@ -30,6 +30,7 @@ describe('03-flash-loan (live sandbox)', () => {
         borrow: 1,
         arbExecutorPackageId: pkg,
         topup: 0,
+        overrideBorrowAmount: 2,
       }),
     ).rejects.toThrow();
   });

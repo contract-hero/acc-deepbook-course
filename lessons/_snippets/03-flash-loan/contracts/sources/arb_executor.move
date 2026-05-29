@@ -14,9 +14,9 @@
 ///
 /// The vault asserts the returned coin's value EQUALS the borrowed principal
 /// EXACTLY (`EIncorrectQuantityReturned`) — flash loans here carry no interest,
-/// so over-repaying also aborts. This module merges a caller-supplied top-up
-/// into the borrowed coin, splits off exactly the principal to repay, and
-/// transfers any remainder back to the caller.
+/// so over-repaying also aborts. This module merges the borrowed coin into
+/// the caller's `topup` coin (`topup.join(borrowed)`), splits off exactly the
+/// principal to repay, and transfers any remainder back to the caller.
 module arb_executor::arb_executor;
 
 use deepbook::pool::{Self, Pool};
@@ -34,9 +34,10 @@ const ERepayShort: u64 = 1;
 
 /// Consume a base-asset flash loan in one shot.
 ///
-/// 1. Merge the caller's `topup` coin into the `borrowed` coin (in a real arb
-///    the top-up would be the profit from whatever trade was executed against
-///    the borrowed funds; here it simply guarantees exact-principal repayment).
+/// 1. Merge the `borrowed` coin into the caller's `topup` coin
+///    (`topup.join(borrowed)`) — in a real arb the top-up would be the profit
+///    from whatever trade was executed against the borrowed funds; here it
+///    simply guarantees exact-principal repayment.
 /// 2. Assert the merged coin can cover the principal.
 /// 3. Split off EXACTLY `borrow_amount` and repay via `return_flashloan_base`,
 ///    which consumes the `FlashLoan` hot potato.

@@ -15,9 +15,18 @@ export interface ArbArgs {
   arbExecutorPackageId: string;
   /**
    * Human DEEP amount to top up with. Defaults to `borrow` so the merged coin
-   * covers the principal exactly. Set to 0 to force a short-repay revert.
+   * covers the principal exactly. Set to 0 to simulate no arb profit.
    */
   topup?: number;
+  /**
+   * For testing: demand MORE repayment than was borrowed → triggers ERepayShort.
+   * When set, the `borrow_amount` arg passed to `execute_base` is this value
+   * (scaled), not the actual borrow amount. Because the merged coin equals only
+   * what was borrowed + topup, demanding a larger repayment makes
+   * `execute_base`'s `assert!(topup.value() >= borrow_amount)` fail (ERepayShort)
+   * and the whole PTB reverts.
+   */
+  overrideBorrowAmount?: number;
 }
 
 /**
@@ -45,6 +54,13 @@ export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<s
 
   const borrowScaled = Math.round(a.borrow * DEEP_SCALAR);
   const topupScaled = Math.round((a.topup ?? a.borrow) * DEEP_SCALAR);
+  // When overrideBorrowAmount is set we tell the Move module to demand a repayment
+  // LARGER than what was actually borrowed. The actual borrow (borrowScaled) is
+  // unchanged; only the repay assertion inside execute_base sees the inflated value.
+  const repayScaled =
+    a.overrideBorrowAmount !== undefined
+      ? Math.round(a.overrideBorrowAmount * DEEP_SCALAR)
+      : borrowScaled;
 
   const tx = new Transaction();
 
@@ -57,7 +73,7 @@ export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<s
   tx.moveCall({
     target: `${a.arbExecutorPackageId}::arb_executor::execute_base`,
     typeArguments: [deepType, suiType],
-    arguments: [tx.object(poolId), coin, flashLoan, topup, tx.pure.u64(borrowScaled)],
+    arguments: [tx.object(poolId), coin, flashLoan, topup, tx.pure.u64(repayScaled)],
   });
 
   const res = await signAndExecute(client, keypair, tx);

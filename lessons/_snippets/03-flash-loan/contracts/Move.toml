@@ -5,14 +5,11 @@ edition = "2024"
 [dependencies]
 # DeepBook Move source dependencies.
 #
-# These point at the deepbook-sandbox worktree that the live localnet was
-# published from (chain-id 22947bed). Move.toml cannot read env vars, so the
-# paths are absolute. Once the sandbox-build fix merges, repoint these at the
-# canonical tree:
-#   token    = { local = "<HOME>/workspace/deepbook-sandbox/sandbox/.external-packages/token" }
-#   deepbook = { local = "<HOME>/workspace/deepbook-sandbox/sandbox/.external-packages/deepbook" }
-token = { local = "/Users/alilloig/workspace/deepbook-sandbox/.claude/worktrees/fix-esbuild-build/sandbox/.external-packages/token" }
-deepbook = { local = "/Users/alilloig/workspace/deepbook-sandbox/.claude/worktrees/fix-esbuild-build/sandbox/.external-packages/deepbook" }
+# Move.toml cannot read env vars, so the paths are absolute. Edit these to
+# match your sandbox checkout. `deploy.sh` uses `DEEPBOOK_SANDBOX_DIR`
+# (default: $HOME/workspace/deepbook-sandbox/sandbox) for publishing.
+token    = { local = "/Users/alilloig/workspace/deepbook-sandbox/sandbox/.external-packages/token" }
+deepbook = { local = "/Users/alilloig/workspace/deepbook-sandbox/sandbox/.external-packages/deepbook" }
 
 # The deepbook dependency declares a `localnet` environment, so building/testing
 # this package must target the same environment: `sui move test -e localnet`.

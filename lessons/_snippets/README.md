@@ -38,7 +38,9 @@ ships a Move package (`contracts/`) whose module consumes the hot-potato on-chai
 
 The connection helper `src/sandbox.ts` is copied into each snippet (self-contained, so each
 graduates cleanly into a standalone lesson reference-app). It is adapted from the sandbox's
-own `examples/sandbox/setup.ts`.
+own `examples/sandbox/setup.ts`. `02-orders` and `04-market-maker` carry a
+`setupWithBalanceManagerBrowser` variant (for their BalanceManager-backed UIs) that
+`01-swap`/`03-flash-loan` don't need — that's the only intentional difference between the copies.
 
 ## Running against the sandbox
 

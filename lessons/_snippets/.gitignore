@@ -4,6 +4,8 @@ dist/
 publish.json
 create_*.json
 *.log
+.env
+.env.*
 
 # Move build artifacts (sui move build/test output)
 contracts/build/

@@ -64,9 +64,12 @@ function baseDelta(result: any, coinType: string, owner: string): number {
   let total = 0;
   for (const ch of changes) {
     const chType = normalizeType(ch.coinType ?? ch.coin_type ?? '');
-    const chOwner = extractOwner(ch.owner);
+    // gRPC BalanceChange has `address` directly; JSON-RPC wraps it in `owner`.
+    const chAddr = ch.address
+      ? normalizeAddr(ch.address)
+      : extractOwner(ch.owner);
     const amount = Number(ch.amount ?? 0);
-    if (chType === wantType && (!chOwner || chOwner === normalizeAddr(owner)) && amount > 0) {
+    if (chType === wantType && (!chAddr || chAddr === normalizeAddr(owner)) && amount > 0) {
       total += amount;
     }
   }
@@ -75,10 +78,7 @@ function baseDelta(result: any, coinType: string, owner: string): number {
 
 function normalizeType(t: string): string {
   // Normalize the address portion of each "0x..::module::Name" segment.
-  return t
-    .split('<')
-    .join('<')
-    .replace(/0x0*([0-9a-fA-F]+)/g, (_m, hex) => '0x' + hex.toLowerCase());
+  return t.replace(/0x0*([0-9a-fA-F]+)/g, (_m, hex) => '0x' + hex.toLowerCase());
 }
 
 function normalizeAddr(a: string): string {

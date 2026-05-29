@@ -36,19 +36,18 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 15, delayMs = 1000):
 // Public interface types
 // ---------------------------------------------------------------------------
 
-export interface PlaceBidArgs {
+/** Shared argument shape for order operations (PlaceBidArgs and PlaceMarketBuyArgs are identical). */
+export interface OrderArgs {
     poolKey: 'DEEP_SUI';
     depositSui: number;
     quantity: number;
     clientOrderId: string;
 }
 
-export interface PlaceMarketBuyArgs {
-    poolKey: 'DEEP_SUI';
-    depositSui: number;
-    quantity: number;
-    clientOrderId: string;
-}
+/** @deprecated Use OrderArgs */
+export type PlaceBidArgs = OrderArgs;
+/** @deprecated Use OrderArgs */
+export type PlaceMarketBuyArgs = OrderArgs;
 
 // ---------------------------------------------------------------------------
 // Order operations
@@ -63,7 +62,7 @@ export interface PlaceMarketBuyArgs {
  */
 export async function placeRestingBid(
     ctx: SandboxConfigWithBM,
-    a: PlaceBidArgs,
+    a: OrderArgs,
 ): Promise<string> {
     const { client, keypair, balanceManagerKey } = ctx;
 
@@ -126,17 +125,14 @@ export async function cancelAll(
  */
 export async function placeMarketBuy(
     ctx: SandboxConfigWithBM,
-    a: PlaceMarketBuyArgs,
+    a: OrderArgs,
 ): Promise<string> {
     const { client, keypair, balanceManagerKey } = ctx;
 
-    // Deposit SUI to cover the market buy cost + potential fees
-    const depositTx = new Transaction();
-    client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'SUI', a.depositSui)(depositTx);
-    await signAndExecute(client, keypair, depositTx);
-
-    // Place market buy — fills at best available ask price
-    const orderTx = new Transaction();
+    // Deposit SUI and place the market buy in a single PTB so both commands
+    // share the same on-chain context and reduce round-trips.
+    const tx = new Transaction();
+    client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'SUI', a.depositSui)(tx);
     client.deepbook.deepBook.placeMarketOrder({
         poolKey: a.poolKey,
         balanceManagerKey,
@@ -145,7 +141,7 @@ export async function placeMarketBuy(
         isBid: true,
         selfMatchingOption: SelfMatchingOptions.SELF_MATCHING_ALLOWED,
         payWithDeep: false,
-    })(orderTx);
+    })(tx);
 
-    return (await signAndExecute(client, keypair, orderTx)).digest;
+    return (await signAndExecute(client, keypair, tx)).digest;
 }

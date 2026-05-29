@@ -295,22 +295,26 @@ export async function setupSandboxBrowser(): Promise<SandboxConfig> {
     return { client, keypair, address, manifest };
 }
 
-/**
- * Full setup + on-chain BalanceManager creation.
- * Suitable for limit orders, market orders, and order lifecycle examples.
- */
-export async function setupWithBalanceManager(): Promise<SandboxConfigWithBM> {
-    const { keypair, address, manifest } = await setupSandbox();
+// ---------------------------------------------------------------------------
+// Private helper — shared between Node and browser BM-creation paths
+// ---------------------------------------------------------------------------
 
-    // Step 1: temporary client (no balance managers)
-    const tempClient = createClient(address, manifest);
+interface BalanceManagerClientResult {
+    client: SandboxClient;
+    balanceManagerId: string;
+    balanceManagerKey: string;
+}
 
-    // Step 2: create BalanceManager on-chain
-    console.log("Creating BalanceManager on-chain...");
+async function createBalanceManagerClient(
+    baseClient: SandboxClient,
+    keypair: Ed25519Keypair,
+    address: string,
+    manifest: DeploymentManifest,
+): Promise<BalanceManagerClientResult> {
     const tx = new Transaction();
-    tempClient.deepbook.balanceManager.createAndShareBalanceManager()(tx);
+    baseClient.deepbook.balanceManager.createAndShareBalanceManager()(tx);
 
-    const result = await tempClient.core.signAndExecuteTransaction({
+    const result = await baseClient.core.signAndExecuteTransaction({
         transaction: tx,
         signer: keypair,
         include: { effects: true, objectTypes: true },
@@ -322,7 +326,6 @@ export async function setupWithBalanceManager(): Promise<SandboxConfigWithBM> {
         );
     }
 
-    // Step 3: extract the created BalanceManager object ID
     const objectTypes = result.Transaction?.objectTypes ?? {};
     const balanceManagerId = result.Transaction?.effects?.changedObjects?.find(
         (obj) =>
@@ -333,24 +336,34 @@ export async function setupWithBalanceManager(): Promise<SandboxConfigWithBM> {
         throw new Error("Failed to extract BalanceManager ID from transaction result");
     }
 
-    // Wait for the gRPC node to index the shared BalanceManager before using it.
-    await tempClient.core.waitForTransaction({ digest: result.Transaction!.digest });
+    await baseClient.core.waitForTransaction({ digest: result.Transaction!.digest });
 
-    console.log(`BalanceManager created: ${balanceManagerId}\n`);
-
-    // Step 4: re-create client with BM registered
     const client = createClient(address, manifest, {
         [BALANCE_MANAGER_KEY]: { address: balanceManagerId },
     });
 
-    return {
-        client,
+    return { client, balanceManagerId, balanceManagerKey: BALANCE_MANAGER_KEY };
+}
+
+/**
+ * Full setup + on-chain BalanceManager creation.
+ * Suitable for limit orders, market orders, and order lifecycle examples.
+ */
+export async function setupWithBalanceManager(): Promise<SandboxConfigWithBM> {
+    const { keypair, address, manifest } = await setupSandbox();
+
+    const tempClient = createClient(address, manifest);
+
+    console.log("Creating BalanceManager on-chain...");
+    const { client, balanceManagerId, balanceManagerKey } = await createBalanceManagerClient(
+        tempClient,
         keypair,
         address,
         manifest,
-        balanceManagerId,
-        balanceManagerKey: BALANCE_MANAGER_KEY,
-    };
+    );
+    console.log(`BalanceManager created: ${balanceManagerId}\n`);
+
+    return { client, keypair, address, manifest, balanceManagerId, balanceManagerKey };
 }
 
 /**
@@ -371,49 +384,15 @@ export async function setupWithBalanceManagerBrowser(): Promise<SandboxConfigWit
     const address = keypair.toSuiAddress();
     await fundWalletBrowser(address);
 
-    // Step 1: temporary client (no balance managers)
     const tempClient = createClient(address, manifest);
-
-    // Step 2: create BalanceManager on-chain
-    const tx = new Transaction();
-    tempClient.deepbook.balanceManager.createAndShareBalanceManager()(tx);
-
-    const result = await tempClient.core.signAndExecuteTransaction({
-        transaction: tx,
-        signer: keypair,
-        include: { effects: true, objectTypes: true },
-    });
-
-    if (result.$kind === "FailedTransaction") {
-        throw new Error(
-            `BalanceManager creation failed: ${JSON.stringify(result.FailedTransaction)}`,
-        );
-    }
-
-    const objectTypes = result.Transaction?.objectTypes ?? {};
-    const balanceManagerId = result.Transaction?.effects?.changedObjects?.find(
-        (obj) =>
-            obj.idOperation === "Created" && objectTypes[obj.objectId]?.includes("BalanceManager"),
-    )?.objectId;
-
-    if (!balanceManagerId) {
-        throw new Error("Failed to extract BalanceManager ID from transaction result");
-    }
-
-    await tempClient.core.waitForTransaction({ digest: result.Transaction!.digest });
-
-    const client = createClient(address, manifest, {
-        [BALANCE_MANAGER_KEY]: { address: balanceManagerId },
-    });
-
-    return {
-        client,
+    const { client, balanceManagerId, balanceManagerKey } = await createBalanceManagerClient(
+        tempClient,
         keypair,
         address,
         manifest,
-        balanceManagerId,
-        balanceManagerKey: BALANCE_MANAGER_KEY,
-    };
+    );
+
+    return { client, keypair, address, manifest, balanceManagerId, balanceManagerKey };
 }
 
 /**

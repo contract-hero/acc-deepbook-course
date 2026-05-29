@@ -98,11 +98,9 @@ export async function stakeDeep(
 ): Promise<string> {
   const { client, keypair, balanceManagerKey } = ctx;
 
-  const dep = new Transaction();
-  client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'DEEP', a.depositDeep)(dep);
-  await signAndExecute(client, keypair, dep);
-
+  // Deposit DEEP and stake in a single PTB to reduce round-trips.
   const tx = new Transaction();
+  client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'DEEP', a.depositDeep)(tx);
   client.deepbook.governance.stake(a.poolKey, balanceManagerKey, a.amount)(tx);
   return (await signAndExecute(client, keypair, tx)).digest;
 }

@@ -17,7 +17,7 @@ import { OrderType, SelfMatchingOptions } from '@mysten/deepbook-v3';
 import { Transaction } from '@mysten/sui/transactions';
 import { signAndExecute, type SandboxConfigWithBM } from './sandbox.js';
 
-const TICK = 0.000001; // DEEP_SUI tick size (1 micro-SUI per DEEP)
+const TICK = 0.000001; // DEEP_SUI tick size: 0.000001 SUI per DEEP
 
 // ---------------------------------------------------------------------------
 // Public interface types

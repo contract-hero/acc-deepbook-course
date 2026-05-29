@@ -21,10 +21,10 @@ describe('02-orders (live sandbox)', () => {
       expect(digest).toMatch(/^[A-Za-z0-9]+$/);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Accept if sandbox liquidity is insufficient or order expired
+      // Tolerate only seeded-liquidity gaps: liquidity-string errors or an on-chain MoveAbort. A bare VMError (gas/version) must still fail the test.
       const isLiquidityError =
         /insufficient|no.*ask|no.*liquidity|empty|expired|cancel/i.test(msg) ||
-        /MoveAbort|VMError/i.test(msg);
+        /MoveAbort/i.test(msg);
       if (!isLiquidityError) throw e;
     }
   });

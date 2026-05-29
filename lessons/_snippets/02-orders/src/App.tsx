@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { setupWithBalanceManagerBrowser } from './sandbox.js';
-import { placeRestingBid, listOpenOrders, cancelAll } from './orders.js';
+import { placeRestingBid, listOpenOrders, cancelAll, placeMarketBuy } from './orders.js';
 import type { SandboxConfigWithBM } from './sandbox.js';
 
 type Status = 'idle' | 'busy';
@@ -58,6 +58,14 @@ export function App() {
     });
   }
 
+  async function handleMarketBuy() {
+    if (!ctx) { setError('Run setup first'); return; }
+    await run('Placing market buy', async () => {
+      const digest = await placeMarketBuy(ctx, { poolKey: 'DEEP_SUI', depositSui: 5, quantity: 1, clientOrderId: String(Date.now()) });
+      log(`Market buy — digest: ${digest}`);
+    });
+  }
+
   const busy = status === 'busy';
   const btnStyle: React.CSSProperties = { margin: '0.25rem', padding: '0.5rem 1rem', cursor: busy ? 'not-allowed' : 'pointer' };
 
@@ -70,6 +78,7 @@ export function App() {
         <button style={btnStyle} onClick={handlePlaceBid} disabled={busy || !ctx}>Place resting bid</button>
         <button style={btnStyle} onClick={handleListOrders} disabled={busy || !ctx}>List open orders</button>
         <button style={btnStyle} onClick={handleCancelAll} disabled={busy || !ctx}>Cancel all</button>
+        <button style={btnStyle} onClick={handleMarketBuy} disabled={busy || !ctx}>Place market buy</button>
       </div>
       {lines.length > 0 && (
         <pre style={{ background: '#f3f3f3', padding: '1rem', marginTop: '1rem', whiteSpace: 'pre-wrap' }}>

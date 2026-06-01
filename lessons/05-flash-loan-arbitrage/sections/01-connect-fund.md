@@ -12,18 +12,20 @@ A flash loan still needs the same starting point as any DeepBook trade: a client
 
 ## The key moment
 
-**`setupWithBalanceManager()` + `seedPoolBaseLiquidity(ctx, 5)` — the loan needs liquidity to draw.**
+**`seedPoolBaseLiquidity(ctx, 50)` — and *how* you actually fund the pool's lendable base.**
 
-The flash-loan helper itself only touches `ctx.client / keypair / manifest`; it never uses the BalanceManager. So why create one? Because the pool's lendable base must be topped up *through* a BM:
+`borrow_flashloan_base` lends from the pool **vault's** `base_balance` — the physical base coin escrowed *inside the pool* (`assert!(self.base_balance.value() >= borrow_quantity)`). On a freshly-deployed sandbox the `DEEP_SUI` vault's base fluctuates with the market maker and can dip below your borrow, so the borrow aborts with `ENotEnoughBaseForLoan` for a reason that has nothing to do with your code.
+
+The trap: a `BalanceManager` deposit does **not** fix this. `depositIntoManager` credits *your account*, not the pool vault — they're separate custody. The only way base reaches `vault.base_balance` is to **escrow it via an order**: when you place an *ask* (sell base), the pool's `settle_balance_manager` pulls that base out of your BM and `join`s it into the vault. So that's what the seed does — deposit DEEP, then rest a DEEP ask far above mid (`POST_ONLY`, so it's guaranteed to rest and never fill):
 
 ```ts
 ctx = await setupWithBalanceManager();
-await seedPoolBaseLiquidity(ctx, 5); // deposit 5 DEEP into the pool vault
+await seedPoolBaseLiquidity(ctx, 50); // escrow 50 DEEP into vault.base_balance via a resting ask
 ```
 
-The shared sandbox `DEEP_SUI` vault is serviced by a market maker that continuously deposits and withdraws base liquidity. When it drains the vault, `borrow_flashloan_base` aborts with `ENotEnoughBaseForLoan` (`assert!(self.base_balance.value() >= borrow_quantity)`) — and your happy-path test fails intermittently for a reason that has nothing to do with your code. `seedPoolBaseLiquidity` deposits 5 DEEP via the BM right before each borrow, raising `base_balance` well above the 0.5 DEEP you'll borrow.
+That locks 50 DEEP into the vault for the life of the suite — comfortably above both the pool's minimum order size and the 0.5 DEEP you'll borrow — so the borrow succeeds deterministically.
 
-This is purely a **sandbox-determinism crutch.** Real (mainnet/testnet) `DEEP_SUI` pools already hold deep standing liquidity, so the vault is never the bottleneck for a small flash loan — production integrations skip this step entirely.
+This is purely a **sandbox-determinism crutch.** Real (mainnet/testnet) `DEEP_SUI` pools already hold deep standing liquidity, so the vault is never the bottleneck for a small flash loan — production integrations skip this entirely.
 
 ## Verification
 

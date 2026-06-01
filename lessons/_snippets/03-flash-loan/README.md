@@ -165,10 +165,12 @@ deposits and withdraws base liquidity. When the market maker drains the vault,
 (`assert!(self.base_balance.value() >= borrow_quantity)`), making the happy-path
 test intermittently fail.
 
-The live test works around this by calling `seedPoolBaseLiquidity` (exported from
-`src/flashLoan.ts`) immediately before each borrow. That helper deposits 5 DEEP
-into the pool vault via a BalanceManager, raising `base_balance` well above the
-0.5 DEEP borrow amount used in both tests. The borrow then always succeeds, and the
+The suite works around this by calling `seedPoolBaseLiquidity` (exported from
+`src/flashLoan.ts`) in `beforeAll`. A BalanceManager deposit alone does NOT feed the
+vault — base only reaches `vault.base_balance` when it's escrowed via an order — so the
+helper deposits DEEP and rests a `POST_ONLY` DEEP ask far above mid, which the pool
+`join`s into `base_balance`. That locks 50 DEEP into the vault, well above the 0.5 DEEP
+borrow used in both tests. The borrow then always succeeds, and the
 negative test reverts for the right reason (`ERepayShort` inside `execute_base`)
 rather than at the borrow step.
 

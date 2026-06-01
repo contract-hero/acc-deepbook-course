@@ -16,13 +16,14 @@ describe('03-flash-loan (live sandbox)', () => {
     // new BM per test and reduces faucet pressure. The flash-loan helper only
     // reads ctx.client/keypair/manifest (no BM interaction), so sharing is safe.
     ctx = await setupWithBalanceManager();
-    // Pre-seed the pool vault so both tests can borrow reliably.
-    // The shared DEEP_SUI vault's base_balance fluctuates with the sandbox market
-    // maker and can drop below any fixed borrow amount, causing ENotEnoughBaseForLoan.
-    // Depositing via a BalanceManager raises vault.base_balance, which is exactly
-    // what borrow_flashloan_base checks. Production pools already hold deep
-    // liquidity so real flash-loan integrations don't need this step.
-    await seedPoolBaseLiquidity(ctx, 5);
+    // Pre-seed the pool vault so both tests can borrow reliably. The shared
+    // DEEP_SUI vault's base_balance fluctuates with the sandbox market maker and
+    // can drop below the borrow amount, causing ENotEnoughBaseForLoan. seedPool-
+    // BaseLiquidity escrows DEEP into vault.base_balance by resting a DEEP ask —
+    // exactly what borrow_flashloan_base lends from. 50 DEEP is comfortably above
+    // both the pool's min order size and the 0.5 DEEP borrow. Production pools hold
+    // deep liquidity, so real flash-loan integrations don't need this step.
+    await seedPoolBaseLiquidity(ctx, 50);
   });
 
   it('borrows DEEP, executes the arb step, repays in one PTB', async () => {

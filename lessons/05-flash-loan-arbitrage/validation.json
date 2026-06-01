@@ -6,15 +6,15 @@
     "note": "tsc -b typecheck + vite production build of the seeded reference-app's TypeScript; 422 modules transformed, no errors. Confirms the TS seed compiles. The Move package under contracts/ was NOT built or published \u2014 that requires the deepbook-sandbox + sui CLI (and the .external-packages/{token,deepbook} source deps), which is out of scope for the offline soundness check."
   },
   "known_issues": [
-    "FLAKY happy-path borrow: the DEEP_SUI vault's lendable base fluctuates around the 0.5 DEEP borrow on a freshly-deployed sandbox, so the borrow intermittently aborts with ENotEnoughBaseForLoan (vault::borrow_flashloan_base, code 1). Root cause: seedPoolBaseLiquidity() deposits DEEP into the BalanceManager, which does NOT feed the pool's flash-loanable vault base_balance \u2014 so the test is at the mercy of the market-maker's vault state, and unlike the swap test it has no borrow-retry. UPSTREAM FIX (in lessons/_snippets/03-flash-loan): make seedPoolBaseLiquidity actually fund the pool vault (e.g. rest a DEEP ask) and/or add a borrow-retry loop. NOTE: section 01-connect-fund.md currently teaches that seedPoolBaseLiquidity raises vault.base_balance \u2014 that claim is inaccurate and should be corrected alongside the fix.",
-    "This lesson's arb_executor Move package must be published before the live test: `DEEPBOOK_SANDBOX_DIR=$HOME/workspace/deepbook-sandbox/sandbox bash contracts/scripts/deploy.sh` (writes the chain-specific id into deployment.json). The committed deployment.json carries a placeholder id; re-publish after any sandbox re-genesis."
+    "This lesson's arb_executor Move package must be published before the live test: `DEEPBOOK_SANDBOX_DIR=$HOME/workspace/deepbook-sandbox/sandbox bash contracts/scripts/deploy.sh` (writes the chain-specific id into deployment.json). The committed deployment.json carries a placeholder id; re-publish after any sandbox re-genesis.",
+    "deploy.sh is first-publish-only: re-running it against the SAME sandbox genesis fails because `sui client test-publish --pubfile-path` already recorded the package. A learner publishes once per genesis (works); re-genesis (pnpm down + deploy-all) regenerates a clean pubfile. Minor re-runnability wart, not learner-path-blocking."
   ],
   "live_gate": {
-    "status": "passed_flaky",
-    "ran_at": "2026-06-01T17:39:00Z",
-    "command": "pnpm vitest run (Move package published first via contracts/scripts/deploy.sh)",
+    "status": "passed",
+    "ran_at": "2026-06-02T00:30:00Z",
+    "command": "pnpm vitest run (arb_executor Move package published first via contracts/scripts/deploy.sh)",
     "sandbox": "local deepbook-sandbox @ origin/main e62fa7d (pnpm deploy-all --quick); DEEP_SUI + SUI_USDC pools",
-    "result": "2/2 live tests passed on the 5th attempt (borrow\u2192execute_base\u2192repay in one PTB; short-repay reverts inside arb_executor::execute_base). Earlier attempts aborted at vault::borrow_flashloan_base with ENotEnoughBaseForLoan (code 1)."
+    "result": "2/2 live tests passed reliably across repeated runs (8/8 then 3/3) \u2014 borrow\u2192execute_base\u2192repay in one PTB, and short-repay reverts inside arb_executor::execute_base. Flakiness fixed: seedPoolBaseLiquidity now escrows base into vault.base_balance by resting a POST_ONLY DEEP ask (a BalanceManager deposit alone does not feed the vault)."
   },
   "learner_validation": {
     "status": "not_run",

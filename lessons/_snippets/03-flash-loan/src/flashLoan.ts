@@ -1,4 +1,5 @@
 import { Transaction, coinWithBalance } from '@mysten/sui/transactions';
+import { OrderType, SelfMatchingOptions } from '@mysten/deepbook-v3';
 import { signAndExecute, type SandboxConfig, type SandboxConfigWithBM } from './sandbox.js';
 
 // DEEP uses a 1e6 scalar on-chain. The deepbook SDK's `borrowBaseAsset` takes a
@@ -6,6 +7,19 @@ import { signAndExecute, type SandboxConfig, type SandboxConfigWithBM } from './
 // records — which our Move module must repay EXACTLY — is the scaled u64. So the
 // `borrow_amount` we hand to `execute_base` is the same human amount scaled here.
 const DEEP_SCALAR = 1_000_000;
+const TICK = 0.000001; // DEEP_SUI tick size: 0.000001 SUI per DEEP
+
+/** Retry a simulate-based read (e.g. midPrice). The sandbox gRPC SimulateTransaction
+ *  endpoint occasionally returns without commandResults; a few retries with a short
+ *  backoff smooth over node-warmup / block-boundary blips. */
+async function withRetry<T>(fn: () => Promise<T>, retries = 15, delayMs = 1000): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < retries; i++) {
+    try { return await fn(); }
+    catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, delayMs)); }
+  }
+  throw lastErr;
+}
 
 export interface ArbArgs {
   poolKey: 'DEEP_SUI';
@@ -81,25 +95,52 @@ export async function runFlashLoanArb(ctx: SandboxConfig, a: ArbArgs): Promise<s
 }
 
 /**
- * Pre-seed the pool's lendable base liquidity by depositing DEEP via a BalanceManager.
+ * Pre-seed the pool's lendable base liquidity so the flash-loan borrow can't hit
+ * `ENotEnoughBaseForLoan` on a freshly-deployed sandbox.
  *
- * Sandbox-determinism helper: the shared DEEP_SUI vault's lendable DEEP fluctuates with
- * the live market maker; a production pool already holds deep liquidity, so real
- * integrations skip this step entirely.
+ * `borrow_flashloan_base` lends from the pool vault's `base_balance` — the *physical*
+ * base coin escrowed inside the pool (`assert!(self.base_balance.value() >= borrow_quantity)`).
+ * A plain `depositIntoManager` only credits the BalanceManager, which does NOT touch the
+ * vault — so depositing alone never raises borrowable base. The only way to move base into
+ * the vault is to escrow it there via an order: when you place an *ask* (sell base), the
+ * pool's `settle_balance_manager` pulls that base out of your BM and `join`s it into
+ * `vault.base_balance`.
  *
- * Depositing raises `base_balance` in the vault, which is exactly the value that
- * `borrow_flashloan_base` checks (`assert!(self.base_balance.value() >= borrow_quantity)`).
- * After this call the borrow in `runFlashLoanArb` will reliably succeed regardless of
- * whatever the market maker has done to the vault balance.
+ * So: deposit `deepAmount` DEEP into the BM, then rest a DEEP ask far above mid (POST_ONLY,
+ * so it's guaranteed to rest and never fill). That escrows `deepAmount` DEEP into the vault
+ * and keeps it there for the life of the suite, making the borrow succeed deterministically
+ * regardless of what the sandbox market maker does to the pool.
  *
- * Note: a BalanceManager DEEP deposit is not pool-scoped, so no `poolKey` parameter
- * is needed here.
+ * Sandbox-determinism helper: production DEEP_SUI pools already hold deep standing
+ * liquidity, so real flash-loan integrations skip this step entirely.
  */
 export async function seedPoolBaseLiquidity(
   ctx: SandboxConfigWithBM,
   deepAmount: number,
 ): Promise<string> {
+  const { client, keypair, balanceManagerKey } = ctx;
+
+  // 1. Fund the BM with the DEEP we're about to escrow into the pool vault.
+  const dep = new Transaction();
+  client.deepbook.balanceManager.depositIntoManager(balanceManagerKey, 'DEEP', deepAmount)(dep);
+  await signAndExecute(client, keypair, dep);
+
+  // 2. Rest a DEEP ask well above mid. POST_ONLY guarantees it rests (never crosses),
+  //    and pricing it at 2× mid means no one fills it — so the escrowed DEEP stays in
+  //    vault.base_balance, lendable to the flash loan.
+  const mid = await withRetry<number>(() => client.deepbook.midPrice('DEEP_SUI'));
+  const askPrice = Math.ceil((mid * 2) / TICK) * TICK;
   const tx = new Transaction();
-  ctx.client.deepbook.balanceManager.depositIntoManager(ctx.balanceManagerKey, 'DEEP', deepAmount)(tx);
-  return (await signAndExecute(ctx.client, ctx.keypair, tx)).digest;
+  client.deepbook.deepBook.placeLimitOrder({
+    poolKey: 'DEEP_SUI',
+    balanceManagerKey,
+    clientOrderId: '0', // numeric string — the SDK serializes this as u64
+    price: askPrice,
+    quantity: deepAmount,
+    isBid: false, // ask: sell DEEP (base) → escrows base into vault.base_balance
+    orderType: OrderType.POST_ONLY,
+    selfMatchingOption: SelfMatchingOptions.SELF_MATCHING_ALLOWED,
+    payWithDeep: false, // DEEP_SUI is whitelisted — no DEEP fee
+  })(tx);
+  return (await signAndExecute(client, keypair, tx)).digest;
 }

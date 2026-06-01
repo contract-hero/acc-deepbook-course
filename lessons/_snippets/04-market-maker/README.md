@@ -24,7 +24,7 @@ fee rebates.
 
 ## Target ACC lesson
 
-`06-market-maker-bot`
+`04-market-maker-bot`
 
 ## File layout
 

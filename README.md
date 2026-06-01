@@ -17,10 +17,10 @@ Requires `agentic-community-college@contract-hero` ≥ `0.2.0` and Docker runnin
 
 ## Lessons
 
-- **`02-place-and-manage-orders`** — Create a `BalanceManager`, place and cancel limit & market orders, and reconcile settled-vs-owed balances. *(Pattern B)*
-- **`03-amm-swap-over-clob`** — Swap wallet coins straight over the order book with `swapExactQuoteForBase` — no `BalanceManager`, with a real `minOut` slippage guard. *(Pattern A)*
-- **`05-flash-loan-arbitrage`** — Borrow with a `FlashLoan` hot-potato and repay it in a single PTB via a Move arb-executor module. *(Pattern E)*
-- **`06-market-maker-bot`** — Run a two-sided `POST_ONLY` quote grid from one `BalanceManager` and stake DEEP for fee rebates. *(Pattern F)*
+- **`01-place-and-manage-orders`** — Create a `BalanceManager`, place and cancel limit & market orders, and reconcile settled-vs-owed balances. *(Pattern B)*
+- **`02-amm-swap-over-clob`** — Swap wallet coins straight over the order book with `swapExactQuoteForBase` — no `BalanceManager`, with a real `minOut` slippage guard. *(Pattern A)*
+- **`03-flash-loan-arbitrage`** — Borrow with a `FlashLoan` hot-potato and repay it in a single PTB via a Move arb-executor module. *(Pattern E)*
+- **`04-market-maker-bot`** — Run a two-sided `POST_ONLY` quote grid from one `BalanceManager` and stake DEEP for fee rebates. *(Pattern F)*
 
 The runnable reference apps these graduate from live in [`lessons/_snippets/`](./lessons/_snippets/).
 

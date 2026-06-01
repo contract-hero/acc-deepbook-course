@@ -1,6 +1,6 @@
 # 02-orders — Pattern B: BalanceManager + Order Lifecycle
 
-Reference snippet for the ACC lesson **`02-place-and-manage-orders`**.
+Reference snippet for the ACC lesson **`01-place-and-manage-orders`**.
 
 ## What this covers
 

@@ -17,7 +17,10 @@
     "result": "2/2 live tests passed reliably across repeated runs (8/8 then 3/3) \u2014 borrow\u2192execute_base\u2192repay in one PTB, and short-repay reverts inside arb_executor::execute_base. Flakiness fixed: seedPoolBaseLiquidity now escrows base into vault.base_balance by resting a POST_ONLY DEEP ask (a BalanceManager deposit alone does not feed the vault)."
   },
   "learner_validation": {
-    "status": "not_run",
-    "note": "Live equivalence gate now passes against a healthy sandbox. The dual-output-mode (learning/explanatory) learner sub-agent pass from lesson-creator Step 7 has not been run yet."
+    "status": "passed",
+    "ran_at": "2026-06-02T00:50:00Z",
+    "method": "Learner-reconstruction: a sub-agent implemented src/flashLoan.ts from the section prompts alone (reference solution stubbed out, tests provided only for the interface), then ran the live gate against the sandbox.",
+    "result": "2/2 live tests passed (borrow\u2192execute_base\u2192repay; short-repay revert). The learner independently rebuilt seedPoolBaseLiquidity with the resting-ask vault-escrow \u2014 confirming the corrected section-1 teaching works.",
+    "note": "Single from-scratch learner walkthrough \u2014 stronger than the conductor's key-moment blanking (the whole core module was rebuilt from prose). The dual output-style (learning vs explanatory) variation only affects narration, not the resulting code."
   }
 }

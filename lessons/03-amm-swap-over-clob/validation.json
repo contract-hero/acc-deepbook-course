@@ -14,7 +14,10 @@
     "result": "2/2 live tests passed \u2014 positive base-out swap, and minOut revert (MoveAbort 12 / EMinimumQuantityOutNotMet)."
   },
   "learner_validation": {
-    "status": "not_run",
-    "note": "Live equivalence gate now passes against a healthy sandbox. The dual-output-mode (learning/explanatory) learner sub-agent pass from lesson-creator Step 7 has not been run yet."
+    "status": "passed",
+    "ran_at": "2026-06-02T00:50:00Z",
+    "method": "Learner-reconstruction: a sub-agent implemented src/swap.ts from the section prompts alone (reference solution stubbed out, tests provided only for the interface), then ran the live gate against the sandbox.",
+    "result": "2/2 live tests passed (positive base-out swap; minOut revert).",
+    "note": "Single from-scratch learner walkthrough \u2014 stronger than the conductor's key-moment blanking (the whole core module was rebuilt from prose). The dual output-style (learning vs explanatory) variation only affects narration, not the resulting code."
   }
 }

@@ -1,7 +1,7 @@
 {
-  "slug": "05-flash-loan-arbitrage",
-  "title": "Flash-Loan Arbitrage with the Hot Potato",
-  "summary": "Borrow DEEP from a DeepBook pool with no collateral and repay it in the same transaction. Write the Move module that consumes the FlashLoan hot-potato via pool::return_flashloan_base, assemble the borrow-use-return PTB in TypeScript, publish the package to the sandbox, and prove the loan is risk-free — short repayment reverts the entire transaction.",
+  "slug": "02-amm-swap-over-clob",
+  "title": "DeepBook Swap over the CLOB",
+  "summary": "Swap wallet coins straight over a DeepBook order book with swapExactQuoteForBase — no BalanceManager. Wire up the sandbox client, send the swap, return the [base, quote, deep] leftover coins, arm the minOut slippage guard, and read the real fill back from the transaction's balanceChanges.",
   "personalization_options": [],
   "build_command": "pnpm install && pnpm vitest run",
   "test_command": "pnpm vitest run",

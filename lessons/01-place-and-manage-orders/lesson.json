@@ -1,7 +1,7 @@
 {
-  "slug": "03-amm-swap-over-clob",
-  "title": "DeepBook Swap over the CLOB",
-  "summary": "Swap wallet coins straight over a DeepBook order book with swapExactQuoteForBase — no BalanceManager. Wire up the sandbox client, send the swap, return the [base, quote, deep] leftover coins, arm the minOut slippage guard, and read the real fill back from the transaction's balanceChanges.",
+  "slug": "01-place-and-manage-orders",
+  "title": "DeepBook Place & Manage Orders",
+  "summary": "Trade through a DeepBook BalanceManager: create and share the on-chain escrow account, deposit funds, rest a limit bid on the book, list and cancel it, then fire a market buy that fills immediately. Learn the BalanceManager lifecycle and the settled-vs-owed reconciliation that separates what an order moved from what you can withdraw.",
   "personalization_options": [],
   "build_command": "pnpm install && pnpm vitest run",
   "test_command": "pnpm vitest run",

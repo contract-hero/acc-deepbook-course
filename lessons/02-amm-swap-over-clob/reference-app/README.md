@@ -4,7 +4,7 @@ A runnable mini-app that swaps **0.1 SUI → DEEP** on the `DEEP_SUI` pool of a
 local **deepbook-sandbox**, directly from wallet coins — no `BalanceManager`
 required.
 
-Target ACC lesson: **`03-amm-swap-over-clob`**.
+Target ACC lesson: **`02-amm-swap-over-clob`**.
 
 ## Pattern A — `swapExactQuoteForBase` (no BalanceManager)
 

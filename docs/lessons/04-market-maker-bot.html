@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4 · Market-Maker Bot · acc-deepbook-course</title>
+<meta name="description" content="Run a two-sided maker on DeepBook v3: one BalanceManager for both sides, a POST_ONLY bid/ask grid around mid, DEEP staking for fee rebates, and a cancel-all-and-refresh cycle.">
+<style>
+  :root {
+    --paper:    oklch(0.985 0.004 95);
+    --surface:  oklch(0.998 0.002 95);
+    --panel:    oklch(0.965 0.006 230);
+    --ink:      oklch(0.24 0.025 248);
+    --ink-soft: oklch(0.34 0.02 248);
+    --muted:    oklch(0.52 0.02 248);
+    --faint:    oklch(0.66 0.015 248);
+    --line:     oklch(0.90 0.008 240);
+    --line-strong: oklch(0.82 0.012 240);
+    --teal:     oklch(0.52 0.10 213);
+    --teal-deep:oklch(0.42 0.09 215);
+    --teal-wash:oklch(0.95 0.025 210);
+    --term-bg:  oklch(0.26 0.03 245);
+    --term-fg:  oklch(0.93 0.01 230);
+    --term-dim: oklch(0.70 0.02 230);
+    --radius: 14px;
+    --maxw: 880px;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; font-family: var(--sans); color: var(--ink); background: var(--paper); font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(20px, 5vw, 40px); }
+  a { color: var(--teal-deep); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  code { font-family: var(--mono); font-size: 0.88em; }
+  h1, h2, h3 { letter-spacing: -0.02em; line-height: 1.12; margin: 0; }
+
+  header.site { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+  header.site .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 650; color: var(--ink); }
+  .brand:hover { text-decoration: none; }
+  .brand .glyph { color: var(--teal); }
+  .nav { display: flex; align-items: center; gap: clamp(14px, 3vw, 24px); font-size: 0.95rem; }
+  .nav a { color: var(--ink-soft); font-weight: 500; }
+  .nav .ext { display: inline-flex; align-items: center; gap: 6px; }
+
+  main .wrap { padding-top: clamp(36px, 6vw, 64px); padding-bottom: clamp(48px, 7vw, 88px); }
+  .back { display: inline-flex; align-items: center; gap: 7px; font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+  .back svg { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1); }
+  .back:hover svg { transform: translateX(-3px); }
+  @media (prefers-reduced-motion: reduce) { .back:hover svg { transform: none; } }
+  .eyebrow { display: inline-block; font-family: var(--mono); font-size: 0.8rem; font-weight: 600; color: var(--teal); letter-spacing: 0.03em; margin: 26px 0 14px; }
+  h1.title { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 720; letter-spacing: -0.035em; }
+  .lede { font-size: clamp(1.08rem, 1.8vw, 1.28rem); color: var(--ink-soft); margin: 20px 0 0; max-width: 60ch; }
+  .calls { margin: 26px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .calls .chip { font-family: var(--mono); font-size: 0.76rem; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 11px; }
+
+  section.block { margin-top: clamp(40px, 6vw, 64px); }
+  h2.h { font-size: clamp(1.35rem, 2.6vw, 1.8rem); font-weight: 700; }
+  .kicker { font-family: var(--mono); font-size: 0.76rem; font-weight: 600; color: var(--teal); letter-spacing: 0.04em; text-transform: uppercase; display: block; margin-bottom: 10px; }
+  .block > p { color: var(--ink-soft); margin: 14px 0 0; max-width: 64ch; }
+  .learn { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; max-width: 64ch; }
+  .learn li { display: flex; gap: 12px; align-items: baseline; color: var(--ink-soft); }
+  .learn li .mk { color: var(--teal); font-weight: 700; flex: none; }
+  .learn li code { color: var(--ink); background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+
+  /* sections walkthrough */
+  ol.steps { list-style: none; counter-reset: s; margin: 22px 0 0; padding: 0; }
+  ol.steps li { counter-increment: s; position: relative; padding: 18px 0 18px 56px; border-top: 1px solid var(--line); }
+  ol.steps li:last-child { border-bottom: 1px solid var(--line); }
+  ol.steps li::before { content: counter(s, decimal-leading-zero); position: absolute; left: 0; top: 17px; font-family: var(--mono); font-size: 0.82rem; font-weight: 700; color: var(--teal); width: 34px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); }
+  ol.steps h3 { font-size: 1.05rem; font-weight: 650; }
+  ol.steps p { margin: 5px 0 0; color: var(--muted); font-size: 0.96rem; }
+  ol.steps .files { margin-top: 7px; font-family: var(--mono); font-size: 0.76rem; color: var(--faint); }
+
+  /* run-it terminal */
+  .runit { margin-top: 22px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(22px, 3vw, 36px); align-items: start; }
+  @media (max-width: 720px) { .runit { grid-template-columns: 1fr; } }
+  .terminal { background: var(--term-bg); border-radius: var(--radius); overflow: hidden; box-shadow: 0 14px 34px oklch(0.26 0.03 245 / 0.20); }
+  .terminal .bar { display: flex; align-items: center; gap: 7px; padding: 11px 15px; border-bottom: 1px solid oklch(0.34 0.02 245); }
+  .terminal .bar .b { width: 11px; height: 11px; border-radius: 50%; background: oklch(0.45 0.02 245); }
+  .terminal .bar .ttl { margin-left: 9px; font-family: var(--mono); font-size: 0.75rem; color: var(--term-dim); }
+  .terminal pre { margin: 0; padding: 18px; overflow-x: auto; font-family: var(--mono); font-size: 0.85rem; line-height: 1.8; color: var(--term-fg); }
+  .terminal pre .slash { color: oklch(0.78 0.11 200); }
+  .terminal pre .cm { color: var(--term-dim); }
+  .runit .aside p { margin: 0 0 12px; color: var(--ink-soft); font-size: 0.96rem; }
+  .runit .aside p:first-child { margin-top: 2px; }
+  .runit .aside code { color: var(--ink); background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+
+  .pager { margin-top: clamp(44px, 6vw, 64px); padding-top: 22px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; font-size: 0.95rem; }
+  .pager a { font-weight: 600; }
+  .pager .none { color: var(--faint); }
+
+  footer.site { border-top: 1px solid var(--line); background: var(--surface); padding: 32px 0 48px; margin-top: 40px; }
+  footer.site .wrap { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: center; }
+  footer .links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.9rem; }
+  footer .links a { color: var(--ink-soft); }
+  footer .note { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html">
+      <svg class="glyph" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2" y="3" width="16" height="2.4" rx="1.2" fill="currentColor" opacity="0.55"/><rect x="2" y="8.8" width="11" height="2.4" rx="1.2" fill="currentColor"/><rect x="2" y="14.6" width="16" height="2.4" rx="1.2" fill="currentColor" opacity="0.55"/></svg>
+      acc-deepbook-course
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="../index.html#lessons">Lessons</a>
+      <a href="../index.html#install">Install</a>
+      <a class="ext" href="https://github.com/contract-hero/acc-deepbook-course">GitHub
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 3h8v8M13 3 4 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <a class="back" href="../index.html#lessons">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      All lessons
+    </a>
+    <span class="eyebrow">Lesson 4 · DeepBook track</span>
+    <h1 class="title">Market-Maker Bot</h1>
+    <p class="lede">Run a two-sided maker on DeepBook v3. Stand up one BalanceManager to hold inventory for both sides, compute a bid and ask grid around mid price, rest it with POST_ONLY orders so it never crosses, stake DEEP for fee rebates, and unwind with cancel-all-and-refresh.</p>
+    <div class="calls">
+      <span class="chip">placeLimitOrder</span>
+      <span class="chip">OrderType.POST_ONLY</span>
+      <span class="chip">governance.stake</span>
+      <span class="chip">cancelAllOrders</span>
+    </div>
+
+    <section class="block">
+      <span class="kicker">What you'll learn</span>
+      <h2 class="h">Quoting both sides at once</h2>
+      <ul class="learn">
+        <li><span class="mk">›</span><span><strong>Two-sided quoting</strong> from a single BalanceManager that holds inventory for both the bid and ask side.</span></li>
+        <li><span class="mk">›</span><span><strong>POST_ONLY</strong> orders so the maker always makes and never accidentally crosses the book to take.</span></li>
+        <li><span class="mk">›</span><span>Staking <strong>DEEP</strong> through governance to qualify for maker fee rebates.</span></li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <span class="kicker">Walkthrough</span>
+      <h2 class="h">Five sections, end to end</h2>
+      <ol class="steps">
+        <li>
+          <h3>One BalanceManager</h3>
+          <p>Create a single shared account that holds the inventory backing every leg of the grid.</p>
+          <div class="files">src/sandbox.ts</div>
+        </li>
+        <li>
+          <h3>Compute the grid</h3>
+          <p>Build a symmetric ladder of bids and asks around the current mid price, snapped to the pool tick.</p>
+          <div class="files">src/marketMaker.ts</div>
+        </li>
+        <li>
+          <h3>Rest the grid</h3>
+          <p>Place every level with POST_ONLY in one transaction, so the engine rejects any leg that would cross.</p>
+          <div class="files">src/marketMaker.ts</div>
+        </li>
+        <li>
+          <h3>Stake DEEP</h3>
+          <p>Deposit and stake DEEP through governance so the maker qualifies for fee rebates next epoch.</p>
+          <div class="files">src/marketMaker.ts</div>
+        </li>
+        <li>
+          <h3>Unwind &amp; re-quote</h3>
+          <p>Cancel the whole grid atomically, wire the smoke UI, and pass the live gate.</p>
+          <div class="files">src/App.tsx · src/main.tsx</div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="block">
+      <span class="kicker">Run it</span>
+      <h2 class="h">Start this lesson</h2>
+      <div class="runit">
+        <div class="terminal" aria-label="Start command">
+          <div class="bar"><span class="b"></span><span class="b"></span><span class="b"></span><span class="ttl">claude code</span></div>
+<pre><span class="slash">/acc-deepbook-course:start</span>
+<span class="cm"># then pick "Market-Maker Bot"</span></pre>
+        </div>
+        <div class="aside">
+          <p>Already installed? Run the start command and choose this lesson from the catalog.</p>
+          <p>New here? Follow the <a href="../index.html#install">install steps</a> first. The course brings up a local sandbox and gates each section with <code>pnpm vitest run</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="pager" aria-label="Lesson pagination">
+      <a href="03-flash-loan-arbitrage.html">← Previous: Flash-Loan Arbitrage</a>
+      <span class="none">Last lesson</span>
+    </nav>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span class="note">acc-deepbook-course · a DeepBook track for the Agentic Community College</span>
+    <div class="links">
+      <a href="../index.html">Home</a>
+      <a href="https://github.com/contract-hero/acc-deepbook-course">Repository</a>
+      <a href="https://github.com/contract-hero/agentic-community-college">ACC framework</a>
+      <a href="https://github.com/MystenLabs/deepbook-sandbox">Sandbox</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

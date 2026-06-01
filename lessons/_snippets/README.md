@@ -17,10 +17,10 @@ Background: `docs/deepbook-integration-research.md` (pattern taxonomy) and
 
 | Pattern | Snippet | Target lesson | Key SDK / Move calls | Teaching moment |
 |---|---|---|---|---|
-| **A** — swap over a CLOB | [`01-swap`](./01-swap) | `03-amm-swap-over-clob` | `deepBook.swapExactQuoteForBase` (no BalanceManager) | the `minOut` slippage guard; the `[base, quote, deep]` return tuple |
-| **B** — orders on Spot | [`02-orders`](./02-orders) | `02-place-and-manage-orders` | `balanceManager.createAndShareBalanceManager` / `depositIntoManager`, `deepBook.placeLimitOrder` / `placeMarketOrder` / `cancelAllOrders` | the BalanceManager lifecycle; settled-vs-owed reconciliation |
-| **E** — flash loan | [`03-flash-loan`](./03-flash-loan) | `05-flash-loan-arbitrage` | `flashLoans.borrowBaseAsset` + a Move module calling `pool::return_flashloan_base` | the `FlashLoan` hot-potato — repay in the same PTB or the whole tx reverts (LPs bear no risk) |
-| **F** — market making | [`04-market-maker`](./04-market-maker) | `06-market-maker-bot` | `deepBook.placeLimitOrder` grid (POST_ONLY), `governance.stake` | two-sided quoting; one BalanceManager spans all pools; stake DEEP for rebates |
+| **A** — swap over a CLOB | [`01-swap`](./01-swap) | `02-amm-swap-over-clob` | `deepBook.swapExactQuoteForBase` (no BalanceManager) | the `minOut` slippage guard; the `[base, quote, deep]` return tuple |
+| **B** — orders on Spot | [`02-orders`](./02-orders) | `01-place-and-manage-orders` | `balanceManager.createAndShareBalanceManager` / `depositIntoManager`, `deepBook.placeLimitOrder` / `placeMarketOrder` / `cancelAllOrders` | the BalanceManager lifecycle; settled-vs-owed reconciliation |
+| **E** — flash loan | [`03-flash-loan`](./03-flash-loan) | `03-flash-loan-arbitrage` | `flashLoans.borrowBaseAsset` + a Move module calling `pool::return_flashloan_base` | the `FlashLoan` hot-potato — repay in the same PTB or the whole tx reverts (LPs bear no risk) |
+| **F** — market making | [`04-market-maker`](./04-market-maker) | `04-market-maker-bot` | `deepBook.placeLimitOrder` grid (POST_ONLY), `governance.stake` | two-sided quoting; one BalanceManager spans all pools; stake DEEP for rebates |
 
 `01-swap`, `02-orders`, `04-market-maker` are TypeScript-only. `03-flash-loan` additionally
 ships a Move package (`contracts/`) whose module consumes the hot-potato on-chain.

@@ -8,7 +8,7 @@ This snippet has **two halves**: a Move package (`contracts/`) that consumes the
 flash loan on-chain, and a TypeScript driver that assembles the borrow-and-settle
 PTB.
 
-Target ACC lesson: **`05-flash-loan-arbitrage`**.
+Target ACC lesson: **`03-flash-loan-arbitrage`**.
 
 ## Pattern E — the FlashLoan hot potato
 

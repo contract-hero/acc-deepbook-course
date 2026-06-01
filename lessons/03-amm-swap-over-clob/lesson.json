@@ -1,0 +1,27 @@
+{
+  "slug": "03-amm-swap-over-clob",
+  "title": "DeepBook Swap over the CLOB",
+  "summary": "Swap wallet coins straight over a DeepBook order book with swapExactQuoteForBase — no BalanceManager. Wire up the sandbox client, send the swap, return the [base, quote, deep] leftover coins, arm the minOut slippage guard, and read the real fill back from the transaction's balanceChanges.",
+  "personalization_options": [],
+  "build_command": "pnpm install && pnpm vitest run",
+  "test_command": "pnpm vitest run",
+  "prerequisites": [
+    "node-version",
+    "pnpm-available",
+    "docker-running",
+    "sui-cli-version",
+    "sui-pilot-enabled",
+    "sandbox-repo-present",
+    "sandbox-manifest-reachable"
+  ],
+  "workspace": {
+    "host": "reference-app",
+    "host_install_command": "pnpm install",
+    "verification_cwd": ".",
+    "files": []
+  },
+  "artifact": {
+    "template": "artifact/template.html",
+    "state_filename": "artifact-state.json"
+  }
+}

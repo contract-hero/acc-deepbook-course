@@ -1,0 +1,27 @@
+{
+  "slug": "06-market-maker-bot",
+  "title": "DeepBook Market-Maker Bot",
+  "summary": "Run a two-sided maker on DeepBook v3: stand up one BalanceManager to hold inventory for both sides, compute a bid/ask grid around mid price, rest it with POST_ONLY limit orders so it never crosses, stake DEEP via governance for fee rebates, and unwind with a cancel-all-and-refresh cycle.",
+  "personalization_options": [],
+  "build_command": "pnpm install && pnpm vitest run",
+  "test_command": "pnpm vitest run",
+  "prerequisites": [
+    "node-version",
+    "pnpm-available",
+    "docker-running",
+    "sui-cli-version",
+    "sui-pilot-enabled",
+    "sandbox-repo-present",
+    "sandbox-manifest-reachable"
+  ],
+  "workspace": {
+    "host": "reference-app",
+    "host_install_command": "pnpm install",
+    "verification_cwd": ".",
+    "files": []
+  },
+  "artifact": {
+    "template": "artifact/template.html",
+    "state_filename": "artifact-state.json"
+  }
+}

@@ -1,8 +1,8 @@
 # acc-deepbook-course
 
-> A hands-on Sui DeepBook course that runs inside Claude Code. ACC clones the sandbox, brings up the stack, and walks you through building a chain-direct dashboard.
+> A hands-on Sui DeepBook course that runs inside Claude Code, built on the Agentic Community College (ACC) framework.
 
-**👉 [Read the 2-minute overview](https://contract-hero.github.io/acc-deepbook-course/)**
+<!-- TODO: 2-minute overview link → https://contract-hero.github.io/acc-deepbook-course/ -->
 
 ## Install
 
@@ -17,11 +17,15 @@ Requires `agentic-community-college@contract-hero` ≥ `0.2.0` and Docker runnin
 
 ## Lessons
 
-- **`01-market-stats`** — Build a React dashboard that fetches DeepBook pool state and recent fills via JSON-RPC, then renders mid price, spread, depth, 24h volume, and a sparkline per pool. Indexer-free — pure on-chain reads.
+- **`02-place-and-manage-orders`** — Create a `BalanceManager`, place and cancel limit & market orders, and reconcile settled-vs-owed balances. *(Pattern B)*
+- **`03-amm-swap-over-clob`** — Swap wallet coins straight over the order book with `swapExactQuoteForBase` — no `BalanceManager`, with a real `minOut` slippage guard. *(Pattern A)*
+- **`05-flash-loan-arbitrage`** — Borrow with a `FlashLoan` hot-potato and repay it in a single PTB via a Move arb-executor module. *(Pattern E)*
+- **`06-market-maker-bot`** — Run a two-sided `POST_ONLY` quote grid from one `BalanceManager` and stake DEEP for fee rebates. *(Pattern F)*
+
+The runnable reference apps these graduate from live in [`lessons/_snippets/`](./lessons/_snippets/).
 
 ## Links
 
-- **Landing page** — <https://contract-hero.github.io/acc-deepbook-course/>
 - **Framework** — [`agentic-community-college`](https://github.com/contract-hero/agentic-community-college)
 - **Marketplace** — [`contract-hero/plugin-marketplace`](https://github.com/contract-hero/plugin-marketplace)
 - **Reference sandbox** — [`MystenLabs/deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) (auto-cloned by ACC; you don't have to)
@@ -36,4 +40,4 @@ pnpm install
 pnpm exec vitest run    # the equivalence gate
 ```
 
-Don't write lesson files by hand — invoke ACC's `agentic-community-college:lesson-creator` skill instead. It scaffolds the whole `lessons/<slug>/` tree (manifest, sections, tests, artifact, reference-app) against a reference codebase.
+Don't write lesson files by hand — invoke ACC's `agentic-community-college:lesson-creator` skill instead. It scaffolds the whole `lessons/<slug>/` tree (manifest, sections, tests, artifact, reference-app) against a reference codebase. The runnable reference apps live in [`lessons/_snippets/`](./lessons/_snippets/).

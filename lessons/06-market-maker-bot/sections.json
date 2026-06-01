@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "s01-one-bm",
+      "title": "One BalanceManager — shared inventory for both sides",
+      "body_md": "sections/01-one-bm.md",
+      "key_moment": "`setupWithBalanceManager()` mints a *single* shared `BalanceManager` via `createAndShareBalanceManager()`, extracts its id from `effects.changedObjects` (filtered to the freshly-`Created` object whose `objectType` includes `BalanceManager`), and re-builds the client with `balanceManagers: { MANAGER_1: { address } }`. That one BM is the inventory wallet for *every* leg of the grid — the maker deposits both DEEP (to back asks) and SUI (to back bids) into it, and all bids and asks settle against the same account. There is no per-order coin splitting; the BM is the maker's book of record.",
+      "expected_files": ["src/sandbox.ts"],
+      "artifact_section_id": "s01-one-bm"
+    },
+    {
+      "id": "s02-quote-grid",
+      "title": "Compute the grid — a two-sided ladder around mid",
+      "body_md": "sections/02-quote-grid.md",
+      "key_moment": "Reading `mid = await client.deepbook.midPrice(poolKey)` (wrapped in `withRetry` because the sandbox's `SimulateTransaction` occasionally returns without `commandResults`), then for each level `i` computing `off = (spreadBps / 10_000) * i`, `bid = round(mid * (1 - off))`, `ask = round(mid * (1 + off))`. `round` snaps every price down to the pool's `TICK` (0.000001) — an unrounded price is rejected by the pool. The grid is *symmetric* about mid: level 1 closest, level N furthest, a bid and an ask at each, so the bot quotes both sides and earns the round-trip spread.",
+      "expected_files": ["src/marketMaker.ts"],
+      "artifact_section_id": "s02-quote-grid"
+    },
+    {
+      "id": "s03-post-only",
+      "title": "Rest the grid — POST_ONLY so the maker never takes",
+      "body_md": "sections/03-post-only.md",
+      "key_moment": "Each leg is placed with `client.deepbook.deepBook.placeLimitOrder({ ..., orderType: OrderType.POST_ONLY, payWithDeep: false })(tx)`, all batched into one PTB. `POST_ONLY` is the line that makes this a *maker*: the matching engine rejects (cancels) any leg that would immediately cross and fill, so the bot can never accidentally cross the spread and pay taker fees — it only ever *rests* liquidity. `payWithDeep: false` because the DEEP_SUI sandbox pool is whitelisted (no DEEP fee). The deposit-then-place is split across two `signAndExecute` calls so the BM is funded before the orders reference its balance.",
+      "expected_files": ["src/marketMaker.ts"],
+      "artifact_section_id": "s03-post-only"
+    },
+    {
+      "id": "s04-stake-deep",
+      "title": "Stake DEEP — qualify for maker fee rebates",
+      "body_md": "sections/04-stake-deep.md",
+      "key_moment": "In a single PTB: `balanceManager.depositIntoManager(bmKey, 'DEEP', depositDeep)(tx)` then `governance.stake(poolKey, bmKey, amount)(tx)`. Staking DEEP through governance is what upgrades a plain maker into a *rebate-earning* maker — staked DEEP qualifies the account for maker fee rebates that accrue inside the same BM. The stake lands in `inactive_stake` this epoch and rolls into `active_stake` next epoch, so a correctness check must sum both (`info.active_stake + info.inactive_stake`).",
+      "expected_files": ["src/marketMaker.ts"],
+      "artifact_section_id": "s04-stake-deep"
+    },
+    {
+      "id": "s05-cancel-and-gate",
+      "title": "Unwind & re-quote — cancel-all, the smoke UI, and the live gate",
+      "body_md": "sections/05-cancel-and-gate.md",
+      "key_moment": "`cancelAllOrders(poolKey, bmKey)(tx)` tears down every resting leg in one atomic call — the foundation of the maker's refresh loop: cancel the whole grid, re-read mid, re-quote. `listOpenOrders` (`accountOpenOrders`) is how the live gate proves the cycle: it asserts exactly `4` resting orders after quoting (2 bids + 2 asks) and `0` after cancel-all. Wiring `setupWithBalanceManagerBrowser()` into the smoke UI and running `pnpm vitest run` is the lesson's `final_verification`.",
+      "expected_files": ["src/App.tsx", "src/main.tsx"],
+      "artifact_section_id": "s05-cancel-and-gate"
+    }
+  ],
+  "final_verification": {
+    "mode": "test-suite",
+    "command": "pnpm vitest run"
+  }
+}

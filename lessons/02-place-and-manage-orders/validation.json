@@ -1,0 +1,23 @@
+{
+  "ran_at": "2026-06-01T16:21:57Z",
+  "offline_build": {
+    "passed": true,
+    "command": "pnpm install && pnpm build",
+    "note": "tsc -b typecheck + vite production build of the seeded reference-app; 421 modules transformed, no errors (only benign node:fs/os/path browser-externalization warnings, same as sibling lessons). Confirms the seed compiles."
+  },
+  "known_issues": [],
+  "live_gate": {
+    "status": "passed",
+    "ran_at": "2026-06-01T17:39:00Z",
+    "command": "pnpm vitest run",
+    "sandbox": "local deepbook-sandbox @ origin/main e62fa7d (pnpm deploy-all --quick); DEEP_SUI + SUI_USDC pools",
+    "result": "2/2 live tests passed \u2014 deposit\u2192rest\u2192list\u2192cancel-all, and market-buy returns a valid digest."
+  },
+  "learner_validation": {
+    "status": "passed",
+    "ran_at": "2026-06-02T00:50:00Z",
+    "method": "Learner-reconstruction: a sub-agent implemented src/orders.ts from the section prompts alone (reference solution stubbed out, tests provided only for the interface), then ran the live gate against the sandbox.",
+    "result": "2/2 live tests passed (resting bid \u2192 list \u2192 cancel-all; market buy).",
+    "note": "Single from-scratch learner walkthrough \u2014 stronger than the conductor's key-moment blanking (the whole core module was rebuilt from prose). The dual output-style (learning vs explanatory) variation only affects narration, not the resulting code."
+  }
+}

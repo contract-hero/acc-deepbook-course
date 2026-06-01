@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "s01-connect-fund",
+      "title": "Connect & fund \u2014 a client and a BalanceManager",
+      "body_md": "sections/01-connect-fund.md",
+      "key_moment": "`setupWithBalanceManager()` returns the funded `{ client, keypair, manifest }` plus an on-chain `BalanceManager` \u2014 and the BM is not optional ceremony here. `borrow_flashloan_base` lends from the pool vault's `base_balance`, and a plain `depositIntoManager` does NOT feed it (the BM is separate custody). The only way base reaches the vault is to escrow it via an order, so `seedPoolBaseLiquidity(ctx, 50)` deposits DEEP and rests a `POST_ONLY` DEEP ask far above mid \u2014 `settle_balance_manager` then `join`s that base into `vault.base_balance`, locking 50 DEEP in (above the pool's min order size and the 0.5 DEEP borrow) so the loan reliably has liquidity. A sandbox-determinism crutch \u2014 production pools hold standing liquidity and skip it.",
+      "expected_files": [
+        "src/sandbox.ts"
+      ],
+      "artifact_section_id": "s01-connect-fund"
+    },
+    {
+      "id": "s02-hot-potato",
+      "title": "The hot potato \u2014 a value the compiler won't let you drop",
+      "body_md": "sections/02-hot-potato.md",
+      "key_moment": "`deepbook::vault::FlashLoan` has NO abilities \u2014 no `drop`, no `store`, no `key`. `borrow_flashloan_base` hands it back alongside the borrowed coin, and the type system makes it impossible to discard, save, or transfer. The only sink is `pool::return_flashloan_base`, which destructures and consumes it. If the PTB ends with the potato alive, the *entire transaction aborts* \u2014 that single compile-time fact is what makes the loan risk-free for LPs: principal returns in full within the atomic tx, or nothing happened at all.",
+      "expected_files": [
+        "contracts/sources/arb_executor.move"
+      ],
+      "artifact_section_id": "s02-hot-potato"
+    },
+    {
+      "id": "s03-execute-base",
+      "title": "Consume it \u2014 execute_base merges, repays exactly, settles the rest",
+      "body_md": "sections/03-execute-base.md",
+      "key_moment": "Inside `execute_base`: `topup.join(borrowed)` merges the loan into the caller's coin, `assert!(topup.value() >= borrow_amount, ERepayShort)` guards the repay, `topup.split(borrow_amount, ctx)` peels off *exactly* the principal, and `pool::return_flashloan_base(pool, repay, loan)` consumes the potato. The vault asserts the returned coin's value EQUALS the principal exactly (`EIncorrectQuantityReturned`) \u2014 these loans carry no interest, so over-repaying aborts too. The repayment must be exact, not merely sufficient.",
+      "expected_files": [
+        "contracts/sources/arb_executor.move"
+      ],
+      "artifact_section_id": "s03-execute-base"
+    },
+    {
+      "id": "s04-publish",
+      "title": "Publish \u2014 stage the package into the sandbox and write deployment.json",
+      "body_md": "sections/04-publish.md",
+      "key_moment": "`contracts/scripts/deploy.sh` stages `arb_executor.move` *inside* `$DEEPBOOK_SANDBOX_DIR/packages/` so its relative `token`/`deepbook` deps resolve, generates a `Move.toml` with NO `[addresses]` block (a named-address module binds its address via the `localnet` environment at publish time \u2014 an explicit block makes the build reject `localnet`), runs `sui client test-publish -e localnet`, and writes the published `arbExecutorPackageId` to `deployment.json`. That id is chain-specific \u2014 re-genesis the sandbox and you must re-publish, or the live test runs against a stale package.",
+      "expected_files": [
+        "contracts/scripts/deploy.sh",
+        "deployment.json"
+      ],
+      "artifact_section_id": "s04-publish"
+    },
+    {
+      "id": "s05-borrow-ptb",
+      "title": "Assemble the PTB \u2014 borrow and settle in one atomic transaction",
+      "body_md": "sections/05-borrow-ptb.md",
+      "key_moment": "`const [coin, flashLoan] = tx.add(client.deepbook.flashLoans.borrowBaseAsset('DEEP_SUI', borrow))` and the `tx.moveCall` to `arb_executor::execute_base` live in the SAME `Transaction` \u2014 that is what makes borrow and repay atomic. The borrow thunk yields the borrowed `coin` and the `flashLoan` potato as NestedResults that flow directly into the move call's arguments; both are consumed before the tx ends. `borrowBaseAsset` takes a human amount and scales it internally, but the `borrow_amount` u64 the module must repay exactly is the *scaled* value (DEEP 1e6) \u2014 so the driver scales it the same way.",
+      "expected_files": [
+        "src/flashLoan.ts"
+      ],
+      "artifact_section_id": "s05-borrow-ptb"
+    },
+    {
+      "id": "s06-live-gate",
+      "title": "Drive it & prove atomicity \u2014 the live revert gate",
+      "body_md": "sections/06-live-gate.md",
+      "key_moment": "The negative test demands repayment LARGER than was borrowed (`overrideBorrowAmount: 1` on a `borrow: 0.5`, `topup: 0`) and asserts the abort message matches `/arb_executor::execute_base/` while NOT matching `/borrow_flashloan|ENotEnoughBaseForLoan/`. Asserting *where* the abort fired \u2014 inside your module's `ERepayShort` guard, not at the borrow step \u2014 is what proves the atomic unwind happened for the right reason: a liquidity shortfall (same code 1) would also throw, but only the real short-repay reverts the settled PTB. That distinction is the lesson: the loan unwinds completely or commits completely, never halfway.",
+      "expected_files": [
+        "src/App.tsx",
+        "src/main.tsx"
+      ],
+      "artifact_section_id": "s06-live-gate"
+    }
+  ],
+  "final_verification": {
+    "mode": "test-suite",
+    "command": "pnpm vitest run"
+  }
+}

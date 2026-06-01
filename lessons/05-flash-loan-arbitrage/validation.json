@@ -3,18 +3,21 @@
   "offline_build": {
     "passed": true,
     "command": "pnpm install && pnpm build",
-    "note": "tsc -b typecheck + vite production build of the seeded reference-app's TypeScript; 422 modules transformed, no errors. Confirms the TS seed compiles. The Move package under contracts/ was NOT built or published — that requires the deepbook-sandbox + sui CLI (and the .external-packages/{token,deepbook} source deps), which is out of scope for the offline soundness check."
-  },
-  "live_validation": {
-    "status": "blocked",
-    "blocker": "deepbook-sandbox `pnpm deploy-all --quick` currently fails at `sui client test-publish` (CLI-vs-Move-package version drift in the sandbox repo); also this lesson's own arb_executor Move package must be published to a healthy sandbox (via contracts/scripts/deploy.sh, writing deployment.json) before its live test can run.",
-    "blocker_repo": "MystenLabs/deepbook-sandbox",
-    "consequence": "This lesson is live-gated (final_verification runs `pnpm vitest run` against a running sandbox with the arb_executor package published). With no healthy sandbox, the two live tests (positive borrow-execute-repay digest; short-repay revert asserting the abort fired inside arb_executor::execute_base, not at the borrow step) cannot be executed, and the dual-output-mode learner sub-agent pass was not run.",
-    "learning": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" },
-    "explanatory": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" }
+    "note": "tsc -b typecheck + vite production build of the seeded reference-app's TypeScript; 422 modules transformed, no errors. Confirms the TS seed compiles. The Move package under contracts/ was NOT built or published \u2014 that requires the deepbook-sandbox + sui CLI (and the .external-packages/{token,deepbook} source deps), which is out of scope for the offline soundness check."
   },
   "known_issues": [
-    "Live validation pending a healthy sandbox: re-run `pnpm deploy-all --quick` in deepbook-sandbox once the test-publish CLI/package version-drift issue is resolved, then re-run this lesson's live gate.",
-    "This lesson's arb_executor Move package must be published before the live test can run: `DEEPBOOK_SANDBOX_DIR=$HOME/workspace/deepbook-sandbox/sandbox bash contracts/scripts/deploy.sh` (writes deployment.json with the chain-specific arbExecutorPackageId). The seeded deployment.json carries a stale id from a prior localnet — re-publish after any sandbox re-genesis, then `cd reference-app && pnpm vitest run` and dispatch the dual-mode learner validation before considering this lesson shippable."
-  ]
+    "FLAKY happy-path borrow: the DEEP_SUI vault's lendable base fluctuates around the 0.5 DEEP borrow on a freshly-deployed sandbox, so the borrow intermittently aborts with ENotEnoughBaseForLoan (vault::borrow_flashloan_base, code 1). Root cause: seedPoolBaseLiquidity() deposits DEEP into the BalanceManager, which does NOT feed the pool's flash-loanable vault base_balance \u2014 so the test is at the mercy of the market-maker's vault state, and unlike the swap test it has no borrow-retry. UPSTREAM FIX (in lessons/_snippets/03-flash-loan): make seedPoolBaseLiquidity actually fund the pool vault (e.g. rest a DEEP ask) and/or add a borrow-retry loop. NOTE: section 01-connect-fund.md currently teaches that seedPoolBaseLiquidity raises vault.base_balance \u2014 that claim is inaccurate and should be corrected alongside the fix.",
+    "This lesson's arb_executor Move package must be published before the live test: `DEEPBOOK_SANDBOX_DIR=$HOME/workspace/deepbook-sandbox/sandbox bash contracts/scripts/deploy.sh` (writes the chain-specific id into deployment.json). The committed deployment.json carries a placeholder id; re-publish after any sandbox re-genesis."
+  ],
+  "live_gate": {
+    "status": "passed_flaky",
+    "ran_at": "2026-06-01T17:39:00Z",
+    "command": "pnpm vitest run (Move package published first via contracts/scripts/deploy.sh)",
+    "sandbox": "local deepbook-sandbox @ origin/main e62fa7d (pnpm deploy-all --quick); DEEP_SUI + SUI_USDC pools",
+    "result": "2/2 live tests passed on the 5th attempt (borrow\u2192execute_base\u2192repay in one PTB; short-repay reverts inside arb_executor::execute_base). Earlier attempts aborted at vault::borrow_flashloan_base with ENotEnoughBaseForLoan (code 1)."
+  },
+  "learner_validation": {
+    "status": "not_run",
+    "note": "Live equivalence gate now passes against a healthy sandbox. The dual-output-mode (learning/explanatory) learner sub-agent pass from lesson-creator Step 7 has not been run yet."
+  }
 }

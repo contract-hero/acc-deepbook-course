@@ -5,15 +5,16 @@
     "command": "pnpm install && pnpm build",
     "note": "tsc -b typecheck + vite production build of the seeded reference-app; 421 modules transformed, no errors (only benign node:fs/os/path browser-externalization warnings, same as sibling lessons). Confirms the seed compiles."
   },
-  "live_validation": {
-    "status": "blocked",
-    "blocker": "deepbook-sandbox `pnpm deploy-all --quick` currently fails at `sui client test-publish` (CLI-vs-Move-package version drift); no healthy sandbox available",
-    "blocker_repo": "MystenLabs/deepbook-sandbox",
-    "consequence": "This lesson is live-gated (final_verification runs `pnpm vitest run` against a running sandbox). With no healthy sandbox, the two live tests (resting-bid place/list/cancel lifecycle; market buy with no-liquidity tolerance) could not be executed, and the Step 7 dual-output-mode learner sub-agent pass was not run.",
-    "learning": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" },
-    "explanatory": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" }
+  "known_issues": [],
+  "live_gate": {
+    "status": "passed",
+    "ran_at": "2026-06-01T17:39:00Z",
+    "command": "pnpm vitest run",
+    "sandbox": "local deepbook-sandbox @ origin/main e62fa7d (pnpm deploy-all --quick); DEEP_SUI + SUI_USDC pools",
+    "result": "2/2 live tests passed \u2014 deposit\u2192rest\u2192list\u2192cancel-all, and market-buy returns a valid digest."
   },
-  "known_issues": [
-    "Live validation pending a healthy sandbox: once deepbook-sandbox `pnpm deploy-all --quick` publishes cleanly, re-run `cd reference-app && pnpm vitest run` (give the market maker ~10s to seed DEEP_SUI asks) and dispatch the dual-mode learner validation before considering this lesson shippable."
-  ]
+  "learner_validation": {
+    "status": "not_run",
+    "note": "Live equivalence gate now passes against a healthy sandbox. The dual-output-mode (learning/explanatory) learner sub-agent pass from lesson-creator Step 7 has not been run yet."
+  }
 }

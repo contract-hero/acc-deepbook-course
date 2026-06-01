@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "s01-bm-lifecycle",
+      "title": "Open the account — the BalanceManager create → share → re-extend sequence",
+      "body_md": "sections/01-bm-lifecycle.md",
+      "key_moment": "The three-step BalanceManager bootstrap in `setupWithBalanceManager`: (1) `baseClient.deepbook.balanceManager.createAndShareBalanceManager()(tx)` is a *thunk* you invoke against the tx, (2) the new BM's id is dug out of `effects.changedObjects` by matching `idOperation === 'Created'` against `objectTypes[...].includes('BalanceManager')`, then (3) you **re-create the client** with `createClient(address, manifest, { MANAGER_1: { address: balanceManagerId } })` so `client.deepbook.*` now knows the BM by key. Skip step 3 and every later `balanceManagerKey` lookup throws — the first client literally has no BM registered.",
+      "expected_files": ["src/sandbox.ts"],
+      "artifact_section_id": "s01-bm-lifecycle"
+    },
+    {
+      "id": "s02-deposit-rest",
+      "title": "Deposit & rest — fund the BM, then place a bid that does not fill",
+      "body_md": "sections/02-deposit-rest.md",
+      "key_moment": "`depositIntoManager(balanceManagerKey, 'SUI', a.depositSui)(depositTx)` executed *before* the order, then a bid priced at `Math.floor((mid * 0.5) / TICK) * TICK` so it rests instead of crossing. The deposit is what funds the BM's locked balance — DeepBook locks the exact quote needed for the bid out of the BM, not your wallet. Pricing at 50% of mid (snapped to the pool's `TICK` of 0.000001) guarantees the bid sits on the book unmatched; price it at or above mid and it crosses and fills, and the 'list it back' assertion in the test would see zero open orders.",
+      "expected_files": ["src/orders.ts"],
+      "artifact_section_id": "s02-deposit-rest"
+    },
+    {
+      "id": "s03-list-cancel",
+      "title": "Inspect & cancel — read order IDs back, then clear the book",
+      "body_md": "sections/03-list-cancel.md",
+      "key_moment": "`accountOpenOrders(poolKey, balanceManagerKey)` returns the live order-ID list for *this* BM (the proof the bid is resting), and `deepBook.cancelAllOrders(poolKey, balanceManagerKey)(tx)` removes every one in a single PTB — releasing the funds DeepBook had locked back into the BM's *settled* balance. The round-trip (`list → expect > 0 → cancel → list → expect 0`) is what proves an order is a real, queryable on-chain object you own through the BM, not a fire-and-forget message.",
+      "expected_files": ["src/orders.ts"],
+      "artifact_section_id": "s03-list-cancel"
+    },
+    {
+      "id": "s04-market-settle",
+      "title": "Take liquidity — a market buy and the settled-vs-owed reconciliation",
+      "body_md": "sections/04-market-settle.md",
+      "key_moment": "Bundling `depositIntoManager(...)` and `placeMarketOrder({ isBid: true, payWithDeep: false, ... })` into ONE PTB so the deposit and the immediate fill share the same on-chain context. `payWithDeep: false` is load-bearing — DEEP_SUI is whitelisted, so fees come out of the traded coins, not a separate DEEP balance. The market buy fills against the maker's resting asks and the bought base settles into the BM's *settled* balance; that is the owed→settled reconciliation — the coins are credited to your BM account immediately, distinct from being withdrawn to your wallet.",
+      "expected_files": ["src/orders.ts"],
+      "artifact_section_id": "s04-market-settle"
+    },
+    {
+      "id": "s05-drive-gate",
+      "title": "Drive it — smoke UI, the warmup retry, and the live gate",
+      "body_md": "sections/05-drive-gate.md",
+      "key_moment": "Wiring `setupWithBalanceManagerBrowser()` (the HTTP-manifest browser variant of the BM bootstrap) into the five-button driver, plus the `withRetry` wrapper around `midPrice` that swallows the sandbox's intermittent `SimulateTransaction` blips, and the market-buy test's deliberately narrow catch: it only tolerates *liquidity-shaped* errors (`/insufficient|no.*ask|empty|.../ ` or a `MoveAbort`) — a bare gas/version `VMError` must still fail. That narrow catch is what keeps the gate honest on a freshly-seeded sandbox without hiding real bugs.",
+      "expected_files": ["src/App.tsx", "src/main.tsx"],
+      "artifact_section_id": "s05-drive-gate"
+    }
+  ],
+  "final_verification": {
+    "mode": "test-suite",
+    "command": "pnpm vitest run"
+  }
+}

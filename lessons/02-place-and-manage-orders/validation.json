@@ -1,0 +1,19 @@
+{
+  "ran_at": "2026-06-01T16:21:57Z",
+  "offline_build": {
+    "passed": true,
+    "command": "pnpm install && pnpm build",
+    "note": "tsc -b typecheck + vite production build of the seeded reference-app; 421 modules transformed, no errors (only benign node:fs/os/path browser-externalization warnings, same as sibling lessons). Confirms the seed compiles."
+  },
+  "live_validation": {
+    "status": "blocked",
+    "blocker": "deepbook-sandbox `pnpm deploy-all --quick` currently fails at `sui client test-publish` (CLI-vs-Move-package version drift); no healthy sandbox available",
+    "blocker_repo": "MystenLabs/deepbook-sandbox",
+    "consequence": "This lesson is live-gated (final_verification runs `pnpm vitest run` against a running sandbox). With no healthy sandbox, the two live tests (resting-bid place/list/cancel lifecycle; market buy with no-liquidity tolerance) could not be executed, and the Step 7 dual-output-mode learner sub-agent pass was not run.",
+    "learning": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" },
+    "explanatory": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" }
+  },
+  "known_issues": [
+    "Live validation pending a healthy sandbox: once deepbook-sandbox `pnpm deploy-all --quick` publishes cleanly, re-run `cd reference-app && pnpm vitest run` (give the market maker ~10s to seed DEEP_SUI asks) and dispatch the dual-mode learner validation before considering this lesson shippable."
+  ]
+}

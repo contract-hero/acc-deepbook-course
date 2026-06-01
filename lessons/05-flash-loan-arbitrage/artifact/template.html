@@ -1,0 +1,349 @@
+<!doctype html>
+<!--
+  ACC lesson artifact — Flash-Loan Arbitrage with the Hot Potato.
+
+  Inherits the ACC family aesthetic (html-artifact skill's
+  references/html-conventions.md): system-font stack, conservative dark
+  palette, inline SVG diagrams, single inline style block, no external assets.
+
+  Three ACC-specific load-bearing pieces — do not remove or rename:
+    1. The ACC_STATE marker (advanceArtifact replaces it at write time).
+    2. Every <section data-section-id="…"> (poller toggles data-visible).
+    3. The inline poller script at the bottom (re-reads artifact-state.json).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Flash-Loan Arbitrage with the Hot Potato — ACC artifact</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b22;
+    --panel-2: #1f242d;
+    --border: #2a313c;
+    --fg: #d5d9e0;
+    --muted: #8b94a7;
+    --accent: #79b8ff;
+    --violet: #c792ea;
+    --good: #6dd56d;
+    --warn: #e6c07b;
+    --bad: #e08585;
+    --code-bg: #0b0e13;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  body { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .6rem; padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  p { line-height: 1.55; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; color: #f0f3f7; font-size: .92em; }
+  .lede { color: var(--muted); }
+  .overview { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.4rem 1.4rem; margin: 1rem 0 .5rem; }
+  .overview h2 { margin-top: .8rem; }
+  section.acc-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .4s ease, transform .4s ease;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+  }
+  section.acc-section[data-visible="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    height: auto;
+    padding: 1.2rem 1.4rem;
+    margin: 1rem 0;
+  }
+  .badge { display: inline-block; min-width: 1.4rem; text-align: center; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: var(--panel-2); color: var(--accent); margin-right: .55rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; margin-top: .5rem; }
+  .diagram { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: .8rem; margin: .9rem 0; }
+  .key-moment { border-left: 3px solid var(--violet); background: rgba(199,146,234,.08); padding: .6rem .9rem; border-radius: 0 6px 6px 0; margin-top: .8rem; font-size: .93rem; }
+  .key-moment strong { color: var(--violet); }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<h1>Flash-Loan Arbitrage with the Hot Potato</h1>
+<p class="lede" id="acc-progress">Lesson loading…</p>
+
+<!-- Always-visible hero: the borrow → use → return loop inside one atomic PTB. -->
+<div class="overview">
+  <h2 style="border:none;margin:.2rem 0 0;">One PTB: borrow, use, repay — or it never happened</h2>
+  <p class="lede">Borrow DEEP with no collateral, run an arb step, repay the exact principal — all inside a single transaction. The <code>FlashLoan</code> potato has no <code>drop</code>: it MUST die in the same tx, or everything reverts. That's what makes it risk-free for LPs.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 1000 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flash-loan PTB: borrow, execute_base, return, or revert">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+      <!-- atomic PTB frame -->
+      <rect x="240" y="20" width="740" height="200" rx="10" fill="none" stroke="#c792ea" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="610" y="14" text-anchor="middle" font-size="11" fill="#c792ea">ONE PROGRAMMABLE TRANSACTION BLOCK — atomic</text>
+      <!-- 0 setup -->
+      <rect x="20" y="70" width="200" height="110" rx="8" fill="#1f242d" stroke="#2a313c"/>
+      <text x="120" y="60" text-anchor="middle" font-size="11" fill="#8b94a7">§1</text>
+      <text x="120" y="98" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff" font-weight="600">setup + BM</text>
+      <text x="120" y="120" text-anchor="middle" font-size="10" fill="#d5d9e0">fund · client</text>
+      <text x="120" y="140" text-anchor="middle" font-size="10" fill="#e6c07b">seedPoolBaseLiquidity</text>
+      <text x="120" y="160" text-anchor="middle" font-size="10" fill="#8b94a7">(sandbox crutch)</text>
+      <!-- 1 borrow -->
+      <rect x="260" y="55" width="210" height="130" rx="8" fill="#1f242d" stroke="#2a313c"/>
+      <text x="365" y="46" text-anchor="middle" font-size="11" fill="#8b94a7">§5</text>
+      <text x="365" y="86" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff" font-weight="600">borrowBaseAsset</text>
+      <text x="365" y="110" text-anchor="middle" font-size="10" fill="#6dd56d">→ coin (DEEP)</text>
+      <text x="365" y="130" text-anchor="middle" font-size="10" fill="#e08585">→ 🥔 FlashLoan (no drop)</text>
+      <text x="365" y="158" text-anchor="middle" font-size="10" fill="#8b94a7">must be consumed this tx</text>
+      <!-- 2 execute_base -->
+      <rect x="510" y="55" width="240" height="130" rx="8" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="630" y="46" text-anchor="middle" font-size="11" fill="#c792ea">§2–3 — your Move module</text>
+      <text x="630" y="86" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">execute_base</text>
+      <text x="630" y="108" text-anchor="middle" font-size="10" fill="#d5d9e0">topup.join(borrowed)</text>
+      <text x="630" y="126" text-anchor="middle" font-size="10" fill="#d5d9e0">split exact principal</text>
+      <text x="630" y="146" text-anchor="middle" font-size="10" fill="#8b94a7">return_flashloan_base 🥔→💀</text>
+      <text x="630" y="166" text-anchor="middle" font-size="10" fill="#8b94a7">remainder → sender</text>
+      <!-- 3 outcome -->
+      <rect x="790" y="55" width="170" height="130" rx="8" fill="#161b22" stroke="#2a313c"/>
+      <text x="875" y="46" text-anchor="middle" font-size="11" fill="#8b94a7">§6</text>
+      <text x="875" y="92" text-anchor="middle" font-size="11" fill="#6dd56d" font-weight="600">exact repay</text>
+      <text x="875" y="110" text-anchor="middle" font-size="10" fill="#6dd56d">→ tx commits</text>
+      <text x="875" y="138" text-anchor="middle" font-size="11" fill="#e08585" font-weight="600">short / over</text>
+      <text x="875" y="156" text-anchor="middle" font-size="10" fill="#e08585">→ whole PTB reverts</text>
+      <!-- arrows -->
+      <line x1="222" y1="120" x2="257" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="472" y1="120" x2="507" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="752" y1="120" x2="787" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="500" y="250" text-anchor="middle" font-size="11" fill="#8b94a7">DEEP_SUI pool · borrow 0.5 DEEP (base) · repay the exact principal · no collateral, no interest</text>
+      <text x="500" y="272" text-anchor="middle" font-size="11" fill="#c792ea">The compiler is the collateral: a value with no `drop` cannot be left unpaid.</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s01-connect-fund">
+  <h2><span class="badge">1</span>Connect &amp; fund — a client and a BalanceManager</h2>
+  <p>Same starting point as any DeepBook trade — client, funded signer — plus a <code>BalanceManager</code> used to top up the pool so the loan has DEEP to draw.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Setup, fund, and pre-seed the pool vault">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="50" width="220" height="140" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="130" y="40" text-anchor="middle" font-size="11" fill="#c792ea">YOUR CODE — sandbox.ts</text>
+      <text x="130" y="82" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">setupWithBalanceManager</text>
+      <text x="130" y="106" text-anchor="middle" font-size="10" fill="#d5d9e0">fresh keypair + faucet</text>
+      <text x="130" y="126" text-anchor="middle" font-size="10" fill="#d5d9e0">on-chain BalanceManager</text>
+      <text x="130" y="150" text-anchor="middle" font-size="10" fill="#8b94a7">{ client, keypair, manifest, BM }</text>
+      <rect x="310" y="50" width="230" height="140" rx="6" fill="#1f242d" stroke="#e6c07b" stroke-width="2"/>
+      <text x="425" y="40" text-anchor="middle" font-size="11" fill="#e6c07b">seedPoolBaseLiquidity(ctx, 5)</text>
+      <text x="425" y="86" text-anchor="middle" font-size="10" fill="#d5d9e0">deposit 5 DEEP via BM</text>
+      <text x="425" y="108" text-anchor="middle" font-size="10" fill="#d5d9e0">raises vault.base_balance</text>
+      <text x="425" y="132" text-anchor="middle" font-size="10" fill="#8b94a7">avoids ENotEnoughBaseForLoan</text>
+      <text x="425" y="156" text-anchor="middle" font-size="10" fill="#8b94a7">sandbox-only crutch</text>
+      <rect x="610" y="80" width="190" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="705" y="68" text-anchor="middle" font-size="11" fill="#8b94a7">DEEP_SUI vault</text>
+      <text x="705" y="118" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">base_balance ≫ 0.5</text>
+      <text x="705" y="138" text-anchor="middle" font-size="10" fill="#8b94a7">loan can be drawn</text>
+      <line x1="242" y1="120" x2="307" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a1)"/>
+      <line x1="542" y1="120" x2="607" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a1)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> the BalanceManager exists to <code>seedPoolBaseLiquidity</code> — depositing 5 DEEP raises the vault's <code>base_balance</code>, the exact value <code>borrow_flashloan_base</code> checks, so the borrow never aborts with <code>ENotEnoughBaseForLoan</code>. A sandbox-determinism crutch; production pools hold standing liquidity and real integrations skip it.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s02-hot-potato">
+  <h2><span class="badge">2</span>The hot potato — a value the compiler won't let you drop</h2>
+  <p><code>borrow_flashloan_base</code> hands back the borrowed coin <em>and</em> a <code>FlashLoan</code> with no abilities. Understand why that makes a collateral-free loan safe.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FlashLoan has no abilities, only one sink consumes it">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="80" width="210" height="90" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="125" y="70" text-anchor="middle" font-size="11" fill="#8b94a7">borrow_flashloan_base</text>
+      <text x="125" y="112" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">Coin&lt;Base&gt;</text>
+      <text x="125" y="134" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e08585">FlashLoan 🥔</text>
+      <rect x="300" y="40" width="240" height="170" rx="6" fill="#1f242d" stroke="#e08585" stroke-width="2"/>
+      <text x="420" y="30" text-anchor="middle" font-size="11" fill="#e08585">FlashLoan — NO abilities</text>
+      <text x="420" y="78" text-anchor="middle" font-size="11" fill="#e08585">✗ drop  — can't discard</text>
+      <text x="420" y="104" text-anchor="middle" font-size="11" fill="#e08585">✗ store — can't save</text>
+      <text x="420" y="130" text-anchor="middle" font-size="11" fill="#e08585">✗ key   — can't transfer</text>
+      <text x="420" y="166" text-anchor="middle" font-size="10" fill="#d5d9e0">only sink: pass by value into</text>
+      <text x="420" y="186" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">return_flashloan_base</text>
+      <rect x="610" y="80" width="190" height="90" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="705" y="120" text-anchor="middle" font-size="11" fill="#e6c07b">potato survives tx?</text>
+      <text x="705" y="144" text-anchor="middle" font-size="11" fill="#e08585" font-weight="600">⇒ whole PTB aborts</text>
+      <line x1="232" y1="125" x2="297" y2="125" stroke="#79b8ff" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="542" y1="125" x2="607" y2="125" stroke="#79b8ff" stroke-width="2" marker-end="url(#a2)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> <code>FlashLoan</code> has no <code>drop</code>, <code>store</code>, or <code>key</code>, so it can only be passed by value into <code>pool::return_flashloan_base</code>. If the PTB ends with it alive, the whole transaction aborts. That compile-time fact — repay-in-full-or-nothing-happened — is the entire safety model: the type system is the collateral.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s03-execute-base">
+  <h2><span class="badge">3</span>Consume it — <code>execute_base</code> merges, repays exactly, settles the rest</h2>
+  <p>The function that discharges the potato: merge the loan into your working coin, repay the <em>exact</em> principal, transfer the remainder back.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="execute_base merges, guards, splits exact principal, repays">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="90" width="180" height="70" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="110" y="120" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">topup.join(borrowed)</text>
+      <text x="110" y="142" text-anchor="middle" font-size="10" fill="#8b94a7">merge profit + loan</text>
+      <rect x="250" y="40" width="220" height="80" rx="6" fill="#1f242d" stroke="#e08585"/>
+      <text x="360" y="76" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e08585">value &lt; borrow_amount</text>
+      <text x="360" y="98" text-anchor="middle" font-size="10" fill="#e08585">ERepayShort (yours)</text>
+      <rect x="250" y="140" width="220" height="80" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="360" y="172" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#c792ea">split(borrow_amount)</text>
+      <text x="360" y="194" text-anchor="middle" font-size="10" fill="#d5d9e0">peel off EXACT principal</text>
+      <rect x="520" y="90" width="280" height="70" rx="6" fill="#161b22" stroke="#6dd56d"/>
+      <text x="660" y="118" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">return_flashloan_base 🥔→💀</text>
+      <text x="660" y="140" text-anchor="middle" font-size="10" fill="#e6c07b">vault: value == principal (else EIncorrect…)</text>
+      <line x1="200" y1="125" x2="248" y2="100" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="200" y1="125" x2="248" y2="170" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="472" y1="180" x2="517" y2="130" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> repay <em>exactly</em> the principal. Too little trips <code>ERepayShort</code> (your named guard, before the split); too much trips the vault's <code>EIncorrectQuantityReturned</code> — these loans carry no interest, so over-repaying aborts just as hard. <code>split</code> peels off precisely the principal; the remainder (your "profit") goes back to you.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s04-publish">
+  <h2><span class="badge">4</span>Publish — stage the package and write <code>deployment.json</code></h2>
+  <p>The TS driver reads the package id from <code>deployment.json</code>, so the module must be live on localnet before the test can run.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="deploy.sh stages, publishes, writes deployment.json">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="70" width="200" height="100" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="120" y="58" text-anchor="middle" font-size="11" fill="#c792ea">deploy.sh — stage</text>
+      <text x="120" y="100" text-anchor="middle" font-size="10" fill="#d5d9e0">copy into sandbox/packages/</text>
+      <text x="120" y="122" text-anchor="middle" font-size="10" fill="#d5d9e0">gen Move.toml</text>
+      <text x="120" y="146" text-anchor="middle" font-size="10" fill="#e6c07b">NO [addresses] block</text>
+      <rect x="300" y="70" width="220" height="100" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="410" y="58" text-anchor="middle" font-size="11" fill="#8b94a7">publish</text>
+      <text x="410" y="104" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">sui client test-publish</text>
+      <text x="410" y="124" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">-e localnet</text>
+      <text x="410" y="148" text-anchor="middle" font-size="10" fill="#8b94a7">env binds the named address</text>
+      <rect x="600" y="80" width="200" height="80" rx="6" fill="#161b22" stroke="#6dd56d"/>
+      <text x="700" y="112" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">deployment.json</text>
+      <text x="700" y="134" text-anchor="middle" font-size="10" fill="#8b94a7">arbExecutorPackageId · chain-specific</text>
+      <line x1="222" y1="120" x2="297" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="522" y1="120" x2="597" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a4)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> stage the module <em>inside</em> the sandbox tree (so <code>token</code>/<code>deepbook</code> deps resolve) and ship <em>no</em> <code>[addresses]</code> block — a named-address module binds its address via the <code>localnet</code> environment at publish time; an explicit block makes the build reject <code>localnet</code>. The written <code>arbExecutorPackageId</code> is chain-specific — re-genesis ⇒ re-publish.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s05-borrow-ptb">
+  <h2><span class="badge">5</span>Assemble the PTB — borrow and settle in one atomic transaction</h2>
+  <p>Borrow with <code>borrowBaseAsset</code> and call <code>execute_base</code> in the <em>same</em> <code>Transaction</code> — that single-PTB constraint is the atomicity.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Borrow thunk yields coin and flashLoan into the same move call">
+      <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="20" width="780" height="210" rx="10" fill="none" stroke="#c792ea" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="410" y="14" text-anchor="middle" font-size="11" fill="#c792ea">new Transaction() — ONE PTB</text>
+      <rect x="50" y="90" width="240" height="80" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="170" y="122" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#c792ea">tx.add(borrowBaseAsset(…))</text>
+      <text x="170" y="144" text-anchor="middle" font-size="10" fill="#8b94a7">→ [coin, flashLoan] NestedResults</text>
+      <rect x="380" y="50" width="150" height="50" rx="6" fill="#161b22" stroke="#6dd56d"/>
+      <text x="455" y="80" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">coin (DEEP)</text>
+      <rect x="380" y="120" width="150" height="50" rx="6" fill="#161b22" stroke="#e08585"/>
+      <text x="455" y="150" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#e08585">flashLoan 🥔</text>
+      <rect x="600" y="80" width="180" height="80" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="690" y="112" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#c792ea">tx.moveCall</text>
+      <text x="690" y="132" text-anchor="middle" font-size="10" fill="#d5d9e0">execute_base(coin, loan, …)</text>
+      <text x="690" y="152" text-anchor="middle" font-size="10" fill="#e6c07b">repay = scaled u64</text>
+      <line x1="290" y1="120" x2="377" y2="80" stroke="#79b8ff" stroke-width="2" marker-end="url(#a5)"/>
+      <line x1="290" y1="140" x2="377" y2="145" stroke="#79b8ff" stroke-width="2" marker-end="url(#a5)"/>
+      <line x1="530" y1="80" x2="597" y2="110" stroke="#79b8ff" stroke-width="2" marker-end="url(#a5)"/>
+      <line x1="530" y1="145" x2="597" y2="125" stroke="#79b8ff" stroke-width="2" marker-end="url(#a5)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> the borrow thunk and the <code>execute_base</code> move call live in the SAME <code>tx</code> — there is no moment where the chain has lent you money and not been repaid. Split them across two transactions and the first aborts; the potato can't cross a tx boundary. Scale the <code>borrow_amount</code> u64 (DEEP 1e6) — the module repays the <em>scaled</em> value, not the human one.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s06-live-gate">
+  <h2><span class="badge">6</span>Drive it &amp; prove atomicity — the live revert gate</h2>
+  <p>Wire the core into the smoke driver and run the live suite — including the test that proves the loan unwinds <em>completely</em> when repayment falls short.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two live test outcomes">
+      <rect x="40" y="40" width="330" height="140" rx="8" fill="#161b22" stroke="#6dd56d"/>
+      <text x="205" y="68" text-anchor="middle" font-size="11" fill="#6dd56d" font-weight="600">test 1 — loan settles</text>
+      <text x="205" y="98" text-anchor="middle" font-size="10" fill="#d5d9e0">borrow 0.5 · exact repay</text>
+      <text x="205" y="120" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">digest matches /^[A-Za-z0-9]+$/</text>
+      <text x="205" y="150" text-anchor="middle" font-size="10" fill="#8b94a7">PTB commits — potato discharged</text>
+      <rect x="450" y="40" width="330" height="140" rx="8" fill="#161b22" stroke="#e08585"/>
+      <text x="615" y="68" text-anchor="middle" font-size="11" fill="#e08585" font-weight="600">test 2 — short repay reverts</text>
+      <text x="615" y="96" text-anchor="middle" font-size="10" fill="#d5d9e0">overrideBorrowAmount 1, topup 0</text>
+      <text x="615" y="120" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e6c07b">match /arb_executor::execute_base/</text>
+      <text x="615" y="142" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e6c07b">NOT /ENotEnoughBaseForLoan/</text>
+      <text x="615" y="166" text-anchor="middle" font-size="10" fill="#8b94a7">aborted at repay, not at borrow</text>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> asserting <em>where</em> the abort fired — inside <code>execute_base</code> (<code>ERepayShort</code>), NOT at the borrow step (<code>ENotEnoughBaseForLoan</code>, same generic code 1) — proves the borrow succeeded, the arb ran, and the short repayment reverted the <em>entire settled PTB</em>. The loan commits completely or unwinds completely; there is no halfway state where the lender is out their principal.
+  </div>
+</section>
+
+<!-- ACC_STATE -->
+
+<script>
+  function applyAccState(s) {
+    if (!s) return;
+    const revealed = new Set(s.revealed || []);
+    for (const sec of document.querySelectorAll('section.acc-section')) {
+      const id = sec.getAttribute('data-section-id');
+      sec.setAttribute('data-visible', revealed.has(id) ? 'true' : 'false');
+    }
+    const cur = (typeof s.cursor === 'number') ? s.cursor + 1 : 0;
+    const total = s.total_sections ?? 0;
+    const mode = s.mode ?? '?';
+    const progress = document.getElementById('acc-progress');
+    if (progress) progress.textContent = 'Section ' + cur + ' of ' + total + ' · output mode: ' + mode;
+  }
+  applyAccState(window.__ACC_STATE__);
+
+  (async function poll() {
+    let lastUpdate = window.__ACC_STATE__?.updated_at ?? '';
+    while (true) {
+      try {
+        const r = await fetch('./artifact-state.json?_=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const s = await r.json();
+          if (s.updated_at !== lastUpdate) {
+            lastUpdate = s.updated_at;
+            applyAccState(s);
+          }
+        }
+      } catch (e) {
+        /* swallow — fetch is blocked on file://; inlined state already rendered */
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  })();
+</script>
+
+</body>
+</html>

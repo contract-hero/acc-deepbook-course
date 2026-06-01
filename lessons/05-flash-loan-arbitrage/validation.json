@@ -1,0 +1,20 @@
+{
+  "ran_at": "2026-06-01T16:23:46Z",
+  "offline_build": {
+    "passed": true,
+    "command": "pnpm install && pnpm build",
+    "note": "tsc -b typecheck + vite production build of the seeded reference-app's TypeScript; 422 modules transformed, no errors. Confirms the TS seed compiles. The Move package under contracts/ was NOT built or published — that requires the deepbook-sandbox + sui CLI (and the .external-packages/{token,deepbook} source deps), which is out of scope for the offline soundness check."
+  },
+  "live_validation": {
+    "status": "blocked",
+    "blocker": "deepbook-sandbox `pnpm deploy-all --quick` currently fails at `sui client test-publish` (CLI-vs-Move-package version drift in the sandbox repo); also this lesson's own arb_executor Move package must be published to a healthy sandbox (via contracts/scripts/deploy.sh, writing deployment.json) before its live test can run.",
+    "blocker_repo": "MystenLabs/deepbook-sandbox (separate repo; not part of this lesson)",
+    "consequence": "This lesson is live-gated (final_verification runs `pnpm vitest run` against a running sandbox with the arb_executor package published). With no healthy sandbox, the two live tests (positive borrow-execute-repay digest; short-repay revert asserting the abort fired inside arb_executor::execute_base, not at the borrow step) cannot be executed, and the dual-output-mode learner sub-agent pass was not run.",
+    "learning": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" },
+    "explanatory": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" }
+  },
+  "known_issues": [
+    "Live validation pending a healthy sandbox: re-run `pnpm deploy-all --quick` in deepbook-sandbox once the test-publish CLI/package version-drift issue is resolved, then re-run this lesson's live gate.",
+    "This lesson's arb_executor Move package must be published before the live test can run: `DEEPBOOK_SANDBOX_DIR=$HOME/workspace/deepbook-sandbox/sandbox bash contracts/scripts/deploy.sh` (writes deployment.json with the chain-specific arbExecutorPackageId). The seeded deployment.json carries a stale id from a prior localnet — re-publish after any sandbox re-genesis, then `cd reference-app && pnpm vitest run` and dispatch the dual-mode learner validation before considering this lesson shippable."
+  ]
+}

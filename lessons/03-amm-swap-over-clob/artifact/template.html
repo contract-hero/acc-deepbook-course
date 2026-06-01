@@ -1,0 +1,324 @@
+<!doctype html>
+<!--
+  ACC lesson artifact — DeepBook Swap over the CLOB.
+
+  Inherits the ACC family aesthetic (html-artifact skill's
+  references/html-conventions.md): system-font stack, conservative dark
+  palette, inline SVG diagrams, single inline style block, no external assets.
+
+  Three ACC-specific load-bearing pieces — do not remove or rename:
+    1. The ACC_STATE marker (advanceArtifact replaces it at write time).
+    2. Every <section data-section-id="…"> (poller toggles data-visible).
+    3. The inline poller script at the bottom (re-reads artifact-state.json).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DeepBook Swap over the CLOB — ACC artifact</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b22;
+    --panel-2: #1f242d;
+    --border: #2a313c;
+    --fg: #d5d9e0;
+    --muted: #8b94a7;
+    --accent: #79b8ff;
+    --violet: #c792ea;
+    --good: #6dd56d;
+    --warn: #e6c07b;
+    --bad: #e08585;
+    --code-bg: #0b0e13;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  body { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .6rem; padding-bottom: .3rem; border-bottom: 1px solid var(--border); }
+  p { line-height: 1.55; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; color: #f0f3f7; font-size: .92em; }
+  .lede { color: var(--muted); }
+  .overview { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.4rem 1.4rem; margin: 1rem 0 .5rem; }
+  .overview h2 { margin-top: .8rem; }
+  section.acc-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .4s ease, transform .4s ease;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+  }
+  section.acc-section[data-visible="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    height: auto;
+    padding: 1.2rem 1.4rem;
+    margin: 1rem 0;
+  }
+  .badge { display: inline-block; min-width: 1.4rem; text-align: center; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: var(--panel-2); color: var(--accent); margin-right: .55rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; margin-top: .5rem; }
+  .diagram { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: .8rem; margin: .9rem 0; }
+  .key-moment { border-left: 3px solid var(--violet); background: rgba(199,146,234,.08); padding: .6rem .9rem; border-radius: 0 6px 6px 0; margin-top: .8rem; font-size: .93rem; }
+  .key-moment strong { color: var(--violet); }
+  svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<h1>DeepBook Swap over the CLOB</h1>
+<p class="lede" id="acc-progress">Lesson loading…</p>
+
+<!-- Always-visible hero: the end-to-end shape of the lesson. -->
+<div class="overview">
+  <h2 style="border:none;margin:.2rem 0 0;">The whole swap, end to end</h2>
+  <p class="lede">Wallet coins in, wallet coins out — one transaction, no <code>BalanceManager</code>. DeepBook is the matching engine; you just call it.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 1000 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Swap pipeline: setup, build, execute, read fill">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/>
+        </marker>
+      </defs>
+      <!-- 1 setup -->
+      <rect x="20" y="60" width="210" height="120" rx="8" fill="#1f242d" stroke="#2a313c"/>
+      <text x="125" y="50" text-anchor="middle" font-size="11" fill="#8b94a7">§1–2</text>
+      <text x="125" y="88" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#79b8ff" font-weight="600">setupSandbox()</text>
+      <text x="125" y="112" text-anchor="middle" font-size="10" fill="#d5d9e0">manifest → DeepBook client</text>
+      <text x="125" y="132" text-anchor="middle" font-size="10" fill="#d5d9e0">fresh keypair + faucet</text>
+      <text x="125" y="156" text-anchor="middle" font-size="10" fill="#8b94a7">{ client, keypair, address }</text>
+      <!-- 2 build -->
+      <rect x="280" y="60" width="220" height="120" rx="8" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="390" y="50" text-anchor="middle" font-size="11" fill="#c792ea">§3 — your code</text>
+      <text x="390" y="90" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">swapExactQuoteForBase</text>
+      <text x="390" y="114" text-anchor="middle" font-size="10" fill="#d5d9e0">→ [base, quote, deep]</text>
+      <text x="390" y="134" text-anchor="middle" font-size="10" fill="#e6c07b">transferObjects(…, address)</text>
+      <text x="390" y="158" text-anchor="middle" font-size="10" fill="#8b94a7">minOut · deepAmount: 0</text>
+      <!-- 3 execute -->
+      <rect x="550" y="60" width="200" height="120" rx="8" fill="#1f242d" stroke="#2a313c"/>
+      <text x="650" y="50" text-anchor="middle" font-size="11" fill="#8b94a7">§2</text>
+      <text x="650" y="92" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff" font-weight="600">signAndExecute</text>
+      <text x="650" y="116" text-anchor="middle" font-size="10" fill="#d5d9e0">include effects +</text>
+      <text x="650" y="134" text-anchor="middle" font-size="10" fill="#6dd56d">balanceChanges</text>
+      <text x="650" y="158" text-anchor="middle" font-size="10" fill="#8b94a7">waitForTransaction</text>
+      <!-- 4 read -->
+      <rect x="800" y="60" width="180" height="120" rx="8" fill="#161b22" stroke="#2a313c"/>
+      <text x="890" y="50" text-anchor="middle" font-size="11" fill="#c792ea">§4 — your code</text>
+      <text x="890" y="92" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">baseDelta()</text>
+      <text x="890" y="116" text-anchor="middle" font-size="10" fill="#d5d9e0">Δ base coin to me</text>
+      <text x="890" y="136" text-anchor="middle" font-size="10" fill="#d5d9e0">÷ scalar</text>
+      <text x="890" y="160" text-anchor="middle" font-size="11" fill="#6dd56d" font-weight="600">baseOut (real)</text>
+      <!-- arrows -->
+      <line x1="232" y1="120" x2="277" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="502" y1="120" x2="547" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="752" y1="120" x2="797" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="500" y="225" text-anchor="middle" font-size="11" fill="#8b94a7">DEEP_SUI pool · spend 0.1 SUI (quote) · receive DEEP (base)</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s01-manifest-client">
+  <h2><span class="badge">1</span>Connect — manifest to a DeepBook client</h2>
+  <p>Every package ID, coin type, and pool lives in the sandbox's deployment manifest. Turn it into a client that knows where DeepBook is.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Manifest to extended client">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="70" width="190" height="100" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="115" y="55" text-anchor="middle" font-size="11" fill="#8b94a7">INPUT</text>
+      <text x="115" y="100" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">localnet.json</text>
+      <text x="115" y="122" text-anchor="middle" font-size="10" fill="#8b94a7">packages · pools</text>
+      <text x="115" y="140" text-anchor="middle" font-size="10" fill="#8b94a7">coin types</text>
+      <rect x="290" y="50" width="240" height="140" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="410" y="40" text-anchor="middle" font-size="11" fill="#c792ea">YOUR CODE — sandbox.ts</text>
+      <text x="410" y="80" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">buildPackageIds</text>
+      <text x="410" y="100" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">buildCoinMap / buildPoolMap</text>
+      <text x="410" y="124" text-anchor="middle" font-size="10" fill="#e6c07b">extractObjectId("Registry",</text>
+      <text x="410" y="140" text-anchor="middle" font-size="10" fill="#e6c07b">exclude "MarginRegistry")</text>
+      <text x="410" y="164" text-anchor="middle" font-size="10" fill="#8b94a7">scalars: DEEP 1e6 · SUI 1e9</text>
+      <rect x="610" y="70" width="190" height="100" rx="6" fill="#1f242d" stroke="#2a313c"/>
+      <text x="705" y="55" text-anchor="middle" font-size="11" fill="#8b94a7">OUTPUT</text>
+      <text x="705" y="98" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">SuiGrpcClient</text>
+      <text x="705" y="116" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#79b8ff">.$extend(deepbook(…))</text>
+      <text x="705" y="140" text-anchor="middle" font-size="10" fill="#6dd56d">client.deepbook.deepBook.*</text>
+      <line x1="212" y1="120" x2="287" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a1)"/>
+      <line x1="532" y1="120" x2="607" y2="120" stroke="#79b8ff" stroke-width="2" marker-end="url(#a1)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> <code>.$extend(deepbook(…))</code> is what grafts <code>client.deepbook.deepBook.*</code> onto the base client — and its config is derived from the manifest. Get the coin <code>scalar</code> wrong (DEEP&nbsp;1e6, SUI&nbsp;1e9) and every amount is off by orders of magnitude.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s02-fund-execute">
+  <h2><span class="badge">2</span>Fund &amp; execute</h2>
+  <p>A swap <em>writes</em> to the chain — you need a funded signer and a send that returns enough to see what happened.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fund and execute">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="40" width="200" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="120" y="70" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">new Ed25519Keypair()</text>
+      <text x="120" y="92" text-anchor="middle" font-size="10" fill="#6dd56d">fresh per run → isolated</text>
+      <rect x="20" y="140" width="200" height="80" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="120" y="170" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">POST /faucet</text>
+      <text x="120" y="192" text-anchor="middle" font-size="10" fill="#8b94a7">SUI · DEEP · USDC</text>
+      <rect x="300" y="80" width="250" height="100" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="425" y="68" text-anchor="middle" font-size="11" fill="#c792ea">YOUR CODE — signAndExecute</text>
+      <text x="425" y="112" text-anchor="middle" font-size="10" fill="#d5d9e0">include: { effects: true,</text>
+      <text x="425" y="130" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d" font-weight="600">balanceChanges: true }</text>
+      <text x="425" y="156" text-anchor="middle" font-size="10" fill="#8b94a7">then waitForTransaction</text>
+      <rect x="620" y="80" width="180" height="100" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="710" y="124" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#79b8ff">ExecutedTransaction</text>
+      <text x="710" y="146" text-anchor="middle" font-size="10" fill="#8b94a7">digest · balanceChanges</text>
+      <line x1="222" y1="80" x2="297" y2="110" stroke="#79b8ff" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="222" y1="180" x2="297" y2="150" stroke="#79b8ff" stroke-width="2" marker-end="url(#a2)"/>
+      <line x1="552" y1="130" x2="617" y2="130" stroke="#79b8ff" stroke-width="2" marker-end="url(#a2)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> requesting <code>balanceChanges: true</code> here is load-bearing — Section&nbsp;4 reads the real fill out of it. Don't ask for it now and the data simply isn't in the response.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s03-swap-thunk">
+  <h2><span class="badge">3</span>The swap, and the coins you must hand back</h2>
+  <p><code>swapExactQuoteForBase</code> spends quote (SUI), returns base (DEEP) — straight from wallet coins. The builder hands you back three loose coins.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Swap thunk returns three coins that must be transferred back">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="100" width="240" height="70" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="140" y="130" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#c792ea" font-weight="600">tx.add(swapExactQuoteForBase)</text>
+      <text x="140" y="150" text-anchor="middle" font-size="10" fill="#8b94a7">poolKey · amount · deepAmount:0 · minOut</text>
+      <!-- three coins -->
+      <rect x="330" y="30" width="160" height="50" rx="6" fill="#161b22" stroke="#6dd56d"/>
+      <text x="410" y="60" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6dd56d">baseCoin (DEEP)</text>
+      <rect x="330" y="110" width="160" height="50" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="410" y="140" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">quoteCoin (SUI)</text>
+      <rect x="330" y="190" width="160" height="50" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="410" y="220" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#d5d9e0">deepCoin</text>
+      <!-- transfer target -->
+      <rect x="580" y="110" width="210" height="50" rx="6" fill="#1f242d" stroke="#e6c07b" stroke-width="2"/>
+      <text x="685" y="132" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#e6c07b" font-weight="600">tx.transferObjects</text>
+      <text x="685" y="150" text-anchor="middle" font-size="10" fill="#d5d9e0">([base,quote,deep], address)</text>
+      <line x1="262" y1="120" x2="325" y2="60" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="262" y1="135" x2="325" y2="135" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="262" y1="150" x2="325" y2="210" stroke="#79b8ff" stroke-width="2" marker-end="url(#a3)"/>
+      <line x1="492" y1="55" x2="577" y2="125" stroke="#e6c07b" stroke-width="1.5" marker-end="url(#a3)"/>
+      <line x1="492" y1="135" x2="577" y2="135" stroke="#e6c07b" stroke-width="1.5" marker-end="url(#a3)"/>
+      <line x1="492" y1="215" x2="577" y2="145" stroke="#e6c07b" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="540" y="258" text-anchor="middle" font-size="10" fill="#e08585">not transferred → destroyed → tx aborts</text>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> the thunk returns <code>[baseCoin, quoteCoin, deepCoin]</code>. If you don't <code>transferObjects</code> them back to the sender, Move has nowhere to put the value and the whole transaction aborts. One line, most common first-swap bug.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s04-read-fill">
+  <h2><span class="badge">4</span>Read the real fill</h2>
+  <p>How much DEEP did you actually get? Don't guess from the book — read the positive delta of the base coin credited to you in <code>balanceChanges</code>.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Filter balanceChanges to compute baseOut">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#79b8ff"/></marker></defs>
+      <rect x="20" y="30" width="230" height="190" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="135" y="52" text-anchor="middle" font-size="11" fill="#8b94a7">balanceChanges</text>
+      <rect x="40" y="66" width="190" height="34" rx="4" fill="#1f242d" stroke="#e08585"/>
+      <text x="135" y="88" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e08585">SUI  −0.1   (spent)</text>
+      <rect x="40" y="108" width="190" height="34" rx="4" fill="#1f242d" stroke="#6dd56d" stroke-width="2"/>
+      <text x="135" y="130" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#6dd56d">DEEP +N   (received)</text>
+      <rect x="40" y="150" width="190" height="34" rx="4" fill="#1f242d" stroke="#2a313c"/>
+      <text x="135" y="172" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#8b94a7">DEEP +0   gas/other owner</text>
+      <rect x="320" y="60" width="240" height="130" rx="6" fill="#1f242d" stroke="#c792ea" stroke-width="2"/>
+      <text x="440" y="50" text-anchor="middle" font-size="11" fill="#c792ea">YOUR CODE — baseDelta()</text>
+      <text x="440" y="92" text-anchor="middle" font-size="10" fill="#d5d9e0">type == base  (normalizeStructTag)</text>
+      <text x="440" y="114" text-anchor="middle" font-size="10" fill="#d5d9e0">owner == me  (address / owner)</text>
+      <text x="440" y="136" text-anchor="middle" font-size="10" fill="#d5d9e0">amount &gt; 0   → sum</text>
+      <text x="440" y="166" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#8b94a7">÷ scalar (1e6)</text>
+      <rect x="630" y="95" width="160" height="60" rx="6" fill="#161b22" stroke="#2a313c"/>
+      <text x="710" y="130" text-anchor="middle" font-family="ui-monospace, monospace" font-size="12" fill="#6dd56d" font-weight="600">baseOut</text>
+      <line x1="252" y1="125" x2="317" y2="125" stroke="#79b8ff" stroke-width="2" marker-end="url(#a4)"/>
+      <line x1="562" y1="125" x2="627" y2="125" stroke="#79b8ff" stroke-width="2" marker-end="url(#a4)"/>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> compare coin types through <code>normalizeStructTag</code> (raw strings won't match the chain's padding → silent <code>0</code>), keep only positive deltas to your address, then divide by the scalar. <code>baseOut</code> is a genuine on-chain figure.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section class="acc-section" data-section-id="s05-smoke-run">
+  <h2><span class="badge">5</span>Drive it, and prove the slippage guard</h2>
+  <p>Wire the core into the smoke driver and run the live suite — including the test that proves <code>minOut</code> is real on-chain protection.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two live test outcomes">
+      <rect x="40" y="40" width="330" height="140" rx="8" fill="#161b22" stroke="#6dd56d"/>
+      <text x="205" y="68" text-anchor="middle" font-size="11" fill="#6dd56d" font-weight="600">test 1 — swap succeeds</text>
+      <text x="205" y="98" text-anchor="middle" font-size="10" fill="#d5d9e0">minOut: 0</text>
+      <text x="205" y="120" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#d5d9e0">expect(baseOut).toBeGreaterThan(0)</text>
+      <text x="205" y="150" text-anchor="middle" font-size="10" fill="#8b94a7">retries warmup if ask book empty</text>
+      <rect x="450" y="40" width="330" height="140" rx="8" fill="#161b22" stroke="#e08585"/>
+      <text x="615" y="68" text-anchor="middle" font-size="11" fill="#e08585" font-weight="600">test 2 — slippage reverts</text>
+      <text x="615" y="98" text-anchor="middle" font-size="10" fill="#d5d9e0">minOut: 1_000_000 (impossible)</text>
+      <text x="615" y="122" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" fill="#e6c07b">MoveAbort code 12</text>
+      <text x="615" y="142" text-anchor="middle" font-size="10" fill="#8b94a7">EMinimumQuantityOutNotMet</text>
+      <text x="615" y="166" text-anchor="middle" font-size="10" fill="#8b94a7">assert that abort, not any throw</text>
+    </svg>
+  </div>
+  <div class="key-moment">
+    <strong>Key moment:</strong> matching MoveAbort code <code>12</code> (not just "it threw") proves the guard fired <em>in the pool, on-chain</em>. A network blip would also throw — only the real slippage check produces code 12. That's the lesson: <code>minOut</code> protects you at the matching engine.
+  </div>
+</section>
+
+<!-- ACC_STATE -->
+
+<script>
+  function applyAccState(s) {
+    if (!s) return;
+    const revealed = new Set(s.revealed || []);
+    for (const sec of document.querySelectorAll('section.acc-section')) {
+      const id = sec.getAttribute('data-section-id');
+      sec.setAttribute('data-visible', revealed.has(id) ? 'true' : 'false');
+    }
+    const cur = (typeof s.cursor === 'number') ? s.cursor + 1 : 0;
+    const total = s.total_sections ?? 0;
+    const mode = s.mode ?? '?';
+    const progress = document.getElementById('acc-progress');
+    if (progress) progress.textContent = 'Section ' + cur + ' of ' + total + ' · output mode: ' + mode;
+  }
+  applyAccState(window.__ACC_STATE__);
+
+  (async function poll() {
+    let lastUpdate = window.__ACC_STATE__?.updated_at ?? '';
+    while (true) {
+      try {
+        const r = await fetch('./artifact-state.json?_=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const s = await r.json();
+          if (s.updated_at !== lastUpdate) {
+            lastUpdate = s.updated_at;
+            applyAccState(s);
+          }
+        }
+      } catch (e) {
+        /* swallow — fetch is blocked on file://; inlined state already rendered */
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  })();
+</script>
+
+</body>
+</html>

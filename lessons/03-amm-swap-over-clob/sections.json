@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "s01-manifest-client",
+      "title": "Connect — manifest to a DeepBook-extended client",
+      "body_md": "sections/01-manifest-client.md",
+      "key_moment": "The `new SuiGrpcClient(...).$extend(deepbook({ packageIds, coins, pools }))` construction. The extension is what grafts `client.deepbook.deepBook.*` onto the base client — and its config is *derived from the manifest*: `extractObjectId` matches the `Registry` object while excluding `MarginRegistry`, and the per-coin `scalar` (DEEP 1e6, SUI 1e9) must match each coin's on-chain decimals or every amount is off by orders of magnitude.",
+      "expected_files": ["src/sandbox.ts"],
+      "artifact_section_id": "s01-manifest-client"
+    },
+    {
+      "id": "s02-fund-execute",
+      "title": "Fund & execute — a fresh keypair and a balance-aware send",
+      "body_md": "sections/02-fund-execute.md",
+      "key_moment": "`signAndExecute` requesting `include: { effects: true, balanceChanges: true }` and then `waitForTransaction`. The `balanceChanges` flag is load-bearing — section 4 reads the real fill out of it, and if it isn't requested here the data simply isn't there. A fresh `Ed25519Keypair` funded per run is what keeps the live test isolated from prior chain state.",
+      "expected_files": ["src/sandbox.ts"],
+      "artifact_section_id": "s02-fund-execute"
+    },
+    {
+      "id": "s03-swap-thunk",
+      "title": "Swap — the leftover-coin tuple you must hand back",
+      "body_md": "sections/03-swap-thunk.md",
+      "key_moment": "The `const [baseCoin, quoteCoin, deepCoin] = tx.add(swapExactQuoteForBase({...}))` return tuple, followed by the mandatory `tx.transferObjects([baseCoin, quoteCoin, deepCoin], address)`. The builder is a thunk that yields three leftover coin handles; if you don't transfer them back to the sender they are *destroyed* at the end of the transaction. `deepAmount: 0` because the sandbox pools are whitelisted (no DEEP fee).",
+      "expected_files": ["src/swap.ts"],
+      "artifact_section_id": "s03-swap-thunk"
+    },
+    {
+      "id": "s04-read-fill",
+      "title": "Read the fill — the real base-out from balanceChanges",
+      "body_md": "sections/04-read-fill.md",
+      "key_moment": "`baseDelta` — sum the *positive* balanceChange of the pool's base coin type credited to the sender, comparing coin types through `normalizeStructTag` (so the manifest type matches the canonicalized on-chain type) and handling both the gRPC `address` and JSON-RPC `owner` owner shapes, then divide by the base scalar. `baseOut` is a genuine on-chain figure, not a placeholder — that is the whole point of reading effects instead of guessing.",
+      "expected_files": ["src/swap.ts"],
+      "artifact_section_id": "s04-read-fill"
+    },
+    {
+      "id": "s05-smoke-run",
+      "title": "Drive it — smoke UI and the live slippage gate",
+      "body_md": "sections/05-smoke-run.md",
+      "key_moment": "Wiring `setupSandbox()` → `swapQuoteForBase()` into the minimal driver and running the live suite. The slippage guard is proven by the second test: an unsatisfiable `minOut` makes the pool revert with MoveAbort code 12 (`EMinimumQuantityOutNotMet`) — the test asserts *that specific* abort, not just any throw, which is what proves `minOut` is real on-chain protection rather than a client-side check.",
+      "expected_files": ["src/App.tsx", "src/main.tsx"],
+      "artifact_section_id": "s05-smoke-run"
+    }
+  ],
+  "final_verification": {
+    "mode": "test-suite",
+    "command": "pnpm vitest run"
+  }
+}

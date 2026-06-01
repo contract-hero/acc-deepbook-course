@@ -60,7 +60,7 @@
   <main>
     <div class="wrap">
       <h1>Build Sui DeepBook integrations inside Claude Code</h1>
-      <p class="lede">A hands-on course on the Agentic Community College (ACC) framework. <!-- TODO: rewrite once the new lessons are authored. --></p>
+      <p class="lede">A hands-on course on the Agentic Community College (ACC) framework. Four lessons take you through the most common DeepBook V3 integration patterns — swaps, orders, flash loans, and market making — each built and tested against a live sandbox.</p>
 
       <h2>Install</h2>
       <pre><code>/plugin marketplace add contract-hero/plugin-marketplace
@@ -69,7 +69,12 @@
 /acc-deepbook-course:start</code></pre>
 
       <h2>Lessons</h2>
-      <!-- TODO: list lessons once the snippets in lessons/_snippets/ are authored into lessons. -->
+      <ul>
+        <li><strong>02 · Place &amp; Manage Orders</strong> — create a BalanceManager, place and cancel limit &amp; market orders, reconcile settled-vs-owed. <em>(Pattern B)</em></li>
+        <li><strong>03 · Swap over the CLOB</strong> — swap wallet coins with <code>swapExactQuoteForBase</code>; no BalanceManager, with a real <code>minOut</code> slippage guard. <em>(Pattern A)</em></li>
+        <li><strong>05 · Flash-Loan Arbitrage</strong> — borrow with a <code>FlashLoan</code> hot-potato and repay it in one PTB via a Move module. <em>(Pattern E)</em></li>
+        <li><strong>06 · Market-Maker Bot</strong> — a two-sided <code>POST_ONLY</code> quote grid from one BalanceManager, staking DEEP for rebates. <em>(Pattern F)</em></li>
+      </ul>
     </div>
   </main>
 

@@ -8,7 +8,7 @@
   "live_validation": {
     "status": "blocked",
     "blocker": "deepbook-sandbox deploy fails — `pnpm deploy-all --quick` cannot publish the token package (`sui client test-publish` -> 'Failed to publish token'). The sandbox's Move packages emit deprecation/unknown-lint warnings against the locally-installed sui CLI, suggesting CLI-vs-package version drift in the deepbook-sandbox repo.",
-    "blocker_repo": "MystenLabs/deepbook-sandbox (separate repo; not part of this lesson)",
+    "blocker_repo": "MystenLabs/deepbook-sandbox",
     "consequence": "This lesson is live-gated (final_verification runs `pnpm vitest run` against a running sandbox). With no healthy sandbox, the two live tests (positive base-out swap; minOut revert / MoveAbort 12) cannot be executed, and the Step 7 dual-output-mode learner sub-agent pass was not run.",
     "learning": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" },
     "explanatory": { "exit_code": null, "tests_passed": null, "transcript_excerpt": "not run — sandbox unavailable" }

@@ -31,4 +31,4 @@ setupWithBalanceManager()            quoteTwoSidedGrid(ctx, args)
 
 ---
 
-This file is rendered before personalization. The HTML artifact carries the depth as you move through the sections.
+This file is rendered before personalization. The HTML artifact carries the depth as you move through the five sections.

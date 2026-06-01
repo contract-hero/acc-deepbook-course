@@ -46,7 +46,7 @@
       "title": "Drive it & prove atomicity — the live revert gate",
       "body_md": "sections/06-live-gate.md",
       "key_moment": "The negative test demands repayment LARGER than was borrowed (`overrideBorrowAmount: 1` on a `borrow: 0.5`, `topup: 0`) and asserts the abort message matches `/arb_executor::execute_base/` while NOT matching `/borrow_flashloan|ENotEnoughBaseForLoan/`. Asserting *where* the abort fired — inside your module's `ERepayShort` guard, not at the borrow step — is what proves the atomic unwind happened for the right reason: a liquidity shortfall (same code 1) would also throw, but only the real short-repay reverts the settled PTB. That distinction is the lesson: the loan unwinds completely or commits completely, never halfway.",
-      "expected_files": ["src/App.tsx", "tests/flashLoan.live.test.ts"],
+      "expected_files": ["src/App.tsx", "src/main.tsx"],
       "artifact_section_id": "s06-live-gate"
     }
   ],

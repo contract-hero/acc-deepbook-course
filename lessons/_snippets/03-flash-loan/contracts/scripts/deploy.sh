@@ -9,7 +9,7 @@
 #   2. Run `sui client test-publish -e localnet` there, pinning the publish
 #      manifest at $DEEPBOOK_SANDBOX_DIR/Pub.localnet.toml.
 #   3. Parse the published packageId from objectChanges and write it to
-#      lessons/_snippets/03-flash-loan/deployment.json.
+#      deployment.json one level up from contracts/ (resolved relative to this script: <contracts>/../deployment.json).
 #
 # Parameterized by DEEPBOOK_SANDBOX_DIR (default: $HOME/workspace/deepbook-sandbox/sandbox).
 # The live localnet was published from a worktree, so override it, e.g.:

@@ -2,7 +2,7 @@
 
 > A hands-on Sui DeepBook course that runs inside Claude Code, built on the Agentic Community College (ACC) framework.
 
-<!-- TODO: 2-minute overview link → https://contract-hero.github.io/acc-deepbook-course/ -->
+**👉 [Read the 2-minute overview](https://contract-hero.github.io/acc-deepbook-course/)**
 
 ## Install
 
@@ -26,6 +26,7 @@ The runnable reference apps these graduate from live in [`lessons/_snippets/`](.
 
 ## Links
 
+- **Landing page** — <https://contract-hero.github.io/acc-deepbook-course/>
 - **Framework** — [`agentic-community-college`](https://github.com/contract-hero/agentic-community-college)
 - **Marketplace** — [`contract-hero/plugin-marketplace`](https://github.com/contract-hero/plugin-marketplace)
 - **Reference sandbox** — [`MystenLabs/deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) (auto-cloned by ACC; you don't have to)

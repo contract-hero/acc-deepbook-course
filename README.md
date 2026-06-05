@@ -2,7 +2,7 @@
 
 > A hands-on Sui DeepBook course that runs inside Claude Code, built on the Agentic Community College (ACC) framework.
 
-<!-- TODO: 2-minute overview link → https://contract-hero.github.io/acc-deepbook-course/ -->
+**👉 [Read the 2-minute overview](https://contract-hero.github.io/acc-deepbook-course/)**
 
 ## Install
 
@@ -17,15 +17,16 @@ Requires `agentic-community-college@contract-hero` ≥ `0.2.0` and Docker runnin
 
 ## Lessons
 
-- **`01-place-and-manage-orders`** — Create a `BalanceManager`, place and cancel limit & market orders, and reconcile settled-vs-owed balances. *(Pattern B)*
-- **`02-amm-swap-over-clob`** — Swap wallet coins straight over the order book with `swapExactQuoteForBase` — no `BalanceManager`, with a real `minOut` slippage guard. *(Pattern A)*
-- **`03-flash-loan-arbitrage`** — Borrow with a `FlashLoan` hot-potato and repay it in a single PTB via a Move arb-executor module. *(Pattern E)*
-- **`04-market-maker-bot`** — Run a two-sided `POST_ONLY` quote grid from one `BalanceManager` and stake DEEP for fee rebates. *(Pattern F)*
+- **`01-place-and-manage-orders`** — Create a `BalanceManager`, place and cancel limit & market orders, and reconcile settled-vs-owed balances.
+- **`02-amm-swap-over-clob`** — Swap wallet coins straight over the order book with `swapExactQuoteForBase` — no `BalanceManager`, with a real `minOut` slippage guard.
+- **`03-flash-loan-arbitrage`** — Borrow with a `FlashLoan` hot-potato and repay it in a single PTB via a Move arb-executor module.
+- **`04-market-maker-bot`** — Run a two-sided `POST_ONLY` quote grid from one `BalanceManager` and stake DEEP for fee rebates.
 
 The runnable reference apps these graduate from live in [`lessons/_snippets/`](./lessons/_snippets/).
 
 ## Links
 
+- **Landing page** — <https://contract-hero.github.io/acc-deepbook-course/>
 - **Framework** — [`agentic-community-college`](https://github.com/contract-hero/agentic-community-college)
 - **Marketplace** — [`contract-hero/plugin-marketplace`](https://github.com/contract-hero/plugin-marketplace)
 - **Reference sandbox** — [`MystenLabs/deepbook-sandbox`](https://github.com/MystenLabs/deepbook-sandbox) (auto-cloned by ACC; you don't have to)
